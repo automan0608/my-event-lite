@@ -2,26 +2,27 @@
 #ifndef _EVENT_H_
 #define _EVENT_H_
 
+#include "prefix_event_core.h"
 /* event base related */
-struct prefix_event_base;
+typedef struct prefix_event_base_s prefix_event_base_t;
 
-struct prefix_event_base *prefix_event_base_new();
+prefix_event_base_t *prefix_event_base_new();
 
-int prefix_event_base_dispatch(struct prefix_event_base *base);
+int prefix_event_base_dispatch(prefix_event_base_t *base);
 
-void prefix_event_base_free(struct prefix_event_base *base);
+void prefix_event_base_free(prefix_event_base_t *base);
 
 
 /* event related */
-struct prefix_event;
+typedef struct prefix_event_s prefix_event_t;
 
-struct prefix_event *prefix_event_new(struct prefix_event_base *base,
+prefix_event_t *prefix_event_new(prefix_event_base_t *base,
                                         prefix_socket_t fd,
                                         short events,
                                         const struct timeval *tv,
-                                        void (*cb)(prefix_socket_t,short,void *),
+                                        void (*cb)(prefix_socket_t, short, void *),
                                         void *arg);
 
-void prefix_event_free(struct prefix_event *ev);
+void prefix_event_free(prefix_event_t *ev);
 
 #endif
