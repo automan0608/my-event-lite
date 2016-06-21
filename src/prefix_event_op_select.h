@@ -3,7 +3,6 @@
 #define _PREFIX_EVENT_OP_SELECT_H_
 
 #include "prefix_event_core.h"
-#include "prefix_event_op.h"
 
 void    *select_init(prefix_event_base_t *);
 int     select_add(prefix_event_base_t *, int, short old, short events, void*);

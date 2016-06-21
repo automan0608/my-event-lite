@@ -10,6 +10,10 @@
 #define    PREFIX_EV_TIME         0x08
 #define    PREFIX_EV_PERSIST    0x10
 
+#define    EVENT_TYPE_IO          0x01
+#define    EVENT_TYPE_SIG        0x02
+#define    EVENT_TYPE_TIME      0x04
+
 struct prefix_event_s
 {
     struct prefix_event_s *prev;
@@ -17,6 +21,7 @@ struct prefix_event_s
 
     prefix_event_base_t *base;
     prefix_event_callback_t callback;
+    void *arg;
 
     int eventType;              // EVENT_IO \   EVENT_SIG   \   EVENT_TIME
 
