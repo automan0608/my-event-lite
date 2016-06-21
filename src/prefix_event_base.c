@@ -39,14 +39,14 @@ void prefix_event_base_dump(prefix_event_base_t *base)
 	}
 
 	printf("********************************************\n");
-	printf("********** event base dump **************\n");
+	printf("************ event base dump **************\n");
 	printf("********************************************\n");
-	printf("       base: %p                                         \n", base);
-	printf("               eventOps:          %p                 \n", base->eventOps);
-	printf("               eventIOHead:     %p                 \n", base->eventIOHead);
-	printf("               eventSigHead:    %p                 \n", base->eventSigHead);
-	printf("               eventTimeHead: %p                 \n", base->eventTimeHead);
-	printf("               timeHeap:          %p                 \n", base->timeHeap);
-	printf("               eventActive:       %p                 \n", base->eventActive);
+	printf("   base: %p                                         \n", base);
+	printf("         eventOps:          %p                 \n", base->eventOps);
+	printf("         eventIOHead:     %p                 \n", base->eventIOHead);
+	printf("         eventSigHead:    %p                 \n", base->eventSigHead);
+	printf("         eventTimeHead: %p                 \n", base->eventTimeHead);
+	printf("         timeHeap:          %p                 \n", base->timeHeap);
+	printf("         eventActive:       %p                 \n", base->eventActive);
 	printf("********************************************\n");
 }

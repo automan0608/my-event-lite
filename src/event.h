@@ -2,6 +2,8 @@
 #ifndef _EVENT_H_
 #define _EVENT_H_
 
+#include <sys/time.h>
+
 #include "prefix_event_core.h"
 /* event base related */
 typedef struct prefix_event_base_s prefix_event_base_t;

@@ -4,7 +4,7 @@ LDFLAGS += -L../ -levent-lite
 target = test_event_base.out
 
 all:
-	$(MAKE) -C ../
+	cd ../ && make
 	make test
 
 test:$(target)
@@ -13,3 +13,8 @@ test:$(target)
 $(target):%.out:%.c
 	$(CC) -o $@ $< $(CFLAGS) $(LDFLAGS)
 
+clean:
+	cd ../ && make clean 
+	rm -rf $(target) *.o
+
+.PHONY:all test $(target)

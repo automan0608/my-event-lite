@@ -1,4 +1,6 @@
 
+#include <stdlib.h>
+#include "prefix_event_op.h"
 #include "prefix_event_op_select.h"
 
 struct selectop {
@@ -22,7 +24,7 @@ const prefix_event_op_t selectOps = {
 
 void *select_init(prefix_event_base_t *base)
 {
-        return;
+        return NULL;
 }
 
 int select_add(prefix_event_base_t *base, int fd, short old, short events, void *arg)
@@ -35,7 +37,7 @@ int select_del(prefix_event_base_t *base, int fd, short old, short events, void 
         return 0;
 }
 
-int select_dispatch(prefix_event_base_t *, struct timeval *)
+int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
 {
         return 0;
 }

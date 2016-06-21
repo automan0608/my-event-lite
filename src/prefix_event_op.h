@@ -1,10 +1,10 @@
 
-#ifndef _PREFIX_EVENTOP_H_
-#define _PREFIX_EVENTOP_H_
+#ifndef _PREFIX_EVENT_OP_H_
+#define _PREFIX_EVENT_OP_H_
 
 #include "prefix_event_core.h"
 
-struct prefix_eventop_s
+struct prefix_event_op_s
 {
 	const char *name;
 
@@ -15,6 +15,6 @@ struct prefix_eventop_s
 	int (*del)(prefix_event_base_t *, prefix_socket_t fd, short old, short events, void *fdinfo);
 
 	int (*dispatch)(prefix_event_base_t *, struct timeval *);
-}
+};
 
 #endif
