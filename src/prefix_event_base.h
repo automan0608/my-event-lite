@@ -19,4 +19,6 @@ struct prefix_event_base_s
     prefix_socket_t 		notifyFd[2]; 	//
 };
 
+int prefix_event_base_add_event(int type, prefix_event_t *event);
+
 #endif

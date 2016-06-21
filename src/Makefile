@@ -1,8 +1,8 @@
 REACTOR := select
-CFLAGS += -shared -fPIC -Wall
+CFLAGS += -shared -fPIC -Wall -g
 LDFLAGS +=
 
-obj = prefix_event_base.o # prefix_event.o
+obj = prefix_event_base.o prefix_event.o
 target = libevent-lite.so
 
 ifeq ("$(REACTOR)","select")
