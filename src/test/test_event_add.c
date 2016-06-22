@@ -24,4 +24,13 @@ int main()
 	prefix_event_t *eventTime02 = prefix_event_new(base, -1, PREFIX_EV_TIME, &tv, cb, NULL);
 
 	prefix_event_base_dump(base);
+
+	prefix_event_dump(eventIO01);
+	prefix_event_dump(eventIO02);
+
+	prefix_event_dump(eventSig01);
+	prefix_event_dump(eventSig02);
+
+	prefix_event_dump(eventTime01);
+	prefix_event_dump(eventTime02);
 }
