@@ -2,7 +2,7 @@ REACTOR := select
 CFLAGS += -shared -fPIC -Wall -g
 LDFLAGS +=
 
-obj = prefix_event_base.o prefix_event.o prefix_pipe.o
+obj = prefix_event_base.o prefix_event.o prefix_pipe.o prefix_min_heap.o
 target = libevent-lite.so
 
 ifeq ("$(REACTOR)","select")

@@ -11,9 +11,9 @@
 #include "prefix_log.h"
 #include "prefix_event.h"
 #include "prefix_pipe.h"
+#include "prefix_min_heap.h"
 
 #include "prefix_event_base.h"
-
 
 prefix_event_base_t *prefix_event_base_new()
 {
@@ -38,7 +38,6 @@ prefix_event_base_t *prefix_event_base_new()
 		prefix_log("error", "create pipe error");
 		return NULL;
 	}
-
 
 	return base;
 }
@@ -101,6 +100,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		return ERROR;
 	}
 
+	// TODO
+
+	return SUCCESS;
 
 }
 

@@ -19,6 +19,10 @@ struct prefix_event_base_s
     prefix_socket_t 		notifyFd[2]; 	//
 };
 
+prefix_event_base_t *prefix_event_base_new();
+
 int prefix_event_base_add_event(int type, prefix_event_t *event);
+
+void prefix_event_base_free(prefix_event_base_t *base);
 
 #endif

@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "prefix_log.h"
 #include "prefix_event_base.h"
@@ -114,8 +115,8 @@ void prefix_event_dump(prefix_event_t *event)
 	{
 	printf("         ev.io.events:    %d                          \n", event->ev.io.events);
 	printf("         ev.io.fd:           %d                          \n", event->ev.io.fd);
-	printf("         ev.io.timeout.sec:   %d                          \n", event->ev.io.timeout.tv_sec);
-	printf("         ev.io.timeout.usec:  %d                          \n", event->ev.io.timeout.tv_usec);
+	printf("         ev.io.timeout.sec:   %d                          \n", (int)event->ev.io.timeout.tv_sec);
+	printf("         ev.io.timeout.usec:  %d                          \n", (int)event->ev.io.timeout.tv_usec);
 	}
 	else if (EVENT_TYPE_SIG == event->eventType)
 	{
@@ -125,8 +126,8 @@ void prefix_event_dump(prefix_event_t *event)
 	else if (EVENT_TYPE_TIME == event->eventType)
 	{
 	printf("         ev.time.events:  %d                          \n", event->ev.time.events);
-	printf("         ev.time.timeout.sec:   %d                          \n", event->ev.time.timeout.tv_sec);
-	printf("         ev.time.timeout.usec:  %d                          \n", event->ev.time.timeout.tv_usec);
+	printf("         ev.time.timeout.sec:   %d                          \n", (int)event->ev.time.timeout.tv_sec);
+	printf("         ev.time.timeout.usec:  %d                          \n", (int)event->ev.time.timeout.tv_usec);
 	}
 	else
 	{
