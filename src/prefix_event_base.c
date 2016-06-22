@@ -10,6 +10,8 @@
 #include "prefix_event_op.h"
 #include "prefix_log.h"
 #include "prefix_event.h"
+#include "prefix_pipe.h"
+
 #include "prefix_event_base.h"
 
 
@@ -28,6 +30,15 @@ prefix_event_base_t *prefix_event_base_new()
 #ifdef _USE_SELECT
 	base->eventOps = &selectOps;
 #endif
+
+	int result = prefix_pipe_create(base->notifyFd);
+	if (SUCCESS != result)
+	{
+		prefix_event_base_free(base);
+		prefix_log("error", "create pipe error");
+		return NULL;
+	}
+
 
 	return base;
 }
@@ -72,6 +83,64 @@ int prefix_event_base_add_event(int type, prefix_event_t *event)
 		event->prev = (*head)->next;
 	}
 	return SUCCESS;
+}
+
+int prefix_event_base_dispatch(prefix_event_base_t *base)
+{
+	if (NULL == base)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	if (NULL == base->eventIOHead
+		&& NULL == base->eventSigHead
+		&& NULL == base->eventTimeHead)
+	{
+		prefix_log("error", "no event registed");
+		return ERROR;
+	}
+
+
+}
+
+// free all events and the event_base
+void prefix_event_base_free(prefix_event_base_t *base)
+{
+	if (NULL == base)
+	{
+		prefix_log("debug", "already freed");
+		return;
+	}
+
+	prefix_event_t *ptr;
+
+	while (NULL != base->eventIOHead)
+	{
+		ptr = base->eventIOHead;
+		base->eventIOHead = base->eventIOHead->next;
+		prefix_event_free(ptr);
+	}
+
+	while (NULL != base->eventSigHead)
+	{
+		ptr = base->eventSigHead;
+		base->eventSigHead = base->eventSigHead->next;
+		prefix_event_free(ptr);
+	}
+
+	while (NULL != base->eventTimeHead)
+	{
+		ptr = base->eventTimeHead;
+		base->eventTimeHead = base->eventTimeHead->next;
+		prefix_event_free(ptr);
+	}
+
+	prefix_min_heap_free(base->timeHeap);
+
+	// no need to free eventActive since it's all from the basic events
+
+	prefix_free(base);
 }
 
 void prefix_event_base_dump(prefix_event_base_t *base)

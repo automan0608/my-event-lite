@@ -84,7 +84,12 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 
 void prefix_event_free(prefix_event_t *event)
 {
+	if (NULL == event)
+	{
+		prefix_log("debug", "already freed");
+	}
 
+	prefix_free(event);
 }
 
 void prefix_event_dump(prefix_event_t *event)

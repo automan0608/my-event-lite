@@ -42,7 +42,6 @@ struct prefix_event_s
             struct timeval      timeout;
         }time;
     }ev;
-
 };
 
 prefix_event_t *prefix_event_new(prefix_event_base_t *base,

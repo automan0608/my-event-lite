@@ -1,5 +1,8 @@
 
 #include <stdlib.h>
+#include <sys/time.h>
+#include <sys/select.h>
+#include <errno.h>
 
 #include "prefix_event_op.h"
 #include "prefix_event_op_select.h"
@@ -14,6 +17,8 @@ struct selectop {
         fd_set *event_writeset_out;
 };
 
+static struct selectop object;
+
 const prefix_event_op_t selectOps = {
         "select",
         select_init,
@@ -22,23 +27,25 @@ const prefix_event_op_t selectOps = {
         select_dispatch,
 };
 
-
 void *select_init(prefix_event_base_t *base)
 {
+        FD_ZERO(&object.event_readset_in);
+        FD_ZERO(&object.event_writeset_out);
+
         return NULL;
 }
 
 int select_add(prefix_event_base_t *base, int fd, short old, short events, void *arg)
 {
-        return 0;
+        return SUCCESS;
 }
 
 int select_del(prefix_event_base_t *base, int fd, short old, short events, void *arg)
 {
-        return 0;
+        return SUCCESS;
 }
 
 int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
 {
-        return 0;
+        return SUCCESS;
 }
