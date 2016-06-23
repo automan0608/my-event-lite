@@ -25,6 +25,8 @@ struct prefix_event_s
 
     int eventType;              // EVENT_IO \   EVENT_SIG   \   EVENT_TIME
 
+    int eventStatus;            //
+
     union {
         struct {
             short   events;

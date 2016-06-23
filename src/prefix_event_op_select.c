@@ -37,7 +37,21 @@ void *select_init(prefix_event_base_t *base)
 
 int select_add(prefix_event_base_t *base, int fd, short old, short events, void *arg)
 {
-        return SUCCESS;
+        int flag = 0;
+        if (events & PREFIX_EV_READ)
+        {
+                FD_SET(fd, object.event_readset_in);
+                flag = 1;
+        }
+
+        if (events & PREFIX_EV_WRITE)
+        {
+                FD_SET(fd, object.event_writeset_in);
+                flag = 1;
+        }
+
+        // to tell the caller whether the event has been added to the reactor
+        return flag;
 }
 
 int select_del(prefix_event_base_t *base, int fd, short old, short events, void *arg)

@@ -100,7 +100,37 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		return ERROR;
 	}
 
-	// TODO
+	prefix_event_t *ptr;
+	int flag = 0;
+	struct timeval tvMin = {0,0}
+
+	// add all io events to reactor
+	prefix_event_t *ptr;
+	if (NULL != base->eventIOHead)
+	{
+		ptr = base->eventIOHead;
+
+		while(ptr)
+		{
+			// find out the min timeval, will use it as the timeout of reactor
+			if ( !(ptr->ev.io.timeout.tv_sec == 0 && ptr->ev.io.timeout.tv_usec == 0)
+				&& prefix_base_timeval_cmp(tvMin, ptr->ev.io.timeout) > 0)
+			{
+				tvMin.tv_sec = ptr.ev.io.timeout.tv_sec;
+				tvMin.tv_usec = ptr.ev.io.timeout.tv_usec;
+			}
+
+			flag = base->eventOps->add(base, ptr->ev.io.fd, 0, ptr->ev.io.events, NULL);
+			if (0 != flag)
+			{
+				//TODO
+			}
+
+			ptr = ptr->next;
+		}
+	}
+
+
 
 	return SUCCESS;
 
