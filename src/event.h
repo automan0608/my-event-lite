@@ -4,7 +4,7 @@
 
 #include <sys/time.h>
 
-#include "prefix_event_core.h"
+#include "prefix_core.h"
 /* event base related */
 
 prefix_event_base_t *prefix_event_base_new();

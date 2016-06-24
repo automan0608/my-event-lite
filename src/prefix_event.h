@@ -2,7 +2,7 @@
 #ifndef _PREFIX_EVENT_H_
 #define _PREFIX_EVENT_H_
 
-#include "prefix_event_core.h"
+#include "prefix_core.h"
 
 #define    PREFIX_EV_READ        0x01
 #define    PREFIX_EV_WRITE       0x02

@@ -2,7 +2,7 @@
 #ifndef _PREFIX_EVENT_BASE_H_
 #define _PREFIX_EVENT_BASE_H_
 
-#include "prefix_event_core.h"
+#include "prefix_core.h"
 
 struct prefix_event_base_s
 {

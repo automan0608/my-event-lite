@@ -14,6 +14,7 @@ typedef struct prefix_min_heap_s	prefix_min_heap_t;
 
 #define prefix_malloc  	malloc
 #define prefix_free		free
+#define prefix_realloc 		realloc
 
 #define    PREFIX_EV_READ        0x01
 #define    PREFIX_EV_WRITE       0x02

@@ -2,7 +2,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "prefix_event_core.h"
+#include "prefix_core.h"
 
 #include "prefix_log.h"
 #include "prefix_pipe.h"
