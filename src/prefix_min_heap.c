@@ -151,6 +151,23 @@ prefix_event_t *prefix_min_heap_pop(prefix_min_heap_t *heap)
 	return event;
 }
 
+struct timeval *prefix_min_heap_get_top(prefix_min_heap_t *heap)
+{
+	if (NULL == heap)
+	{
+		prefix_log("error", "parameter error");
+		return NULL;
+	}
+
+	if (0 == heap->n)
+	{
+		prefix_log("error", "min heap empty");
+		return NULL;
+	}
+
+	return &heap->nodes[0]->tv;
+}
+
 void prefix_min_heap_free(prefix_min_heap_t *heap)
 {
 	if (NULL == heap)
