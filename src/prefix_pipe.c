@@ -10,7 +10,7 @@
 static int prefix_pipe_set_nonblocking(int fd);
 static int prefix_pipe_set_closeonexec(int fd);
 
-int prefix_pipe_create(int fd[2])
+int prefix_pipe_init(int fd[2])
 {
 	if (0 != pipe(fd))
 	{

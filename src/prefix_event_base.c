@@ -32,11 +32,19 @@ prefix_event_base_t *prefix_event_base_new()
 	base->eventOps = &selectOps;
 #endif
 
-	int result = prefix_pipe_create(base->notifyFd);
+	int result = prefix_pipe_init(base->notifyFd);
 	if (SUCCESS != result)
 	{
 		prefix_event_base_free(base);
 		prefix_log("error", "create pipe error");
+		return NULL;
+	}
+
+	base->timeHeap = prefix_min_heap_init();
+	if (NULL == base->timeHeap)
+	{
+		prefix_event_base_free(base);
+		prefix_log("error", "create min heap error");
 		return NULL;
 	}
 
@@ -186,27 +194,27 @@ void prefix_event_base_dump(prefix_event_base_t *base)
 	prefix_event_t *ptr;
 
 	printf("********************************************\n");
-	printf("************ event base dump **************\n");
+	printf("************* event base dump **************\n");
 	printf("********************************************\n");
 	printf("   base:      %p                                        \n", base);
 	printf("         eventOps:        %p                 \n", base->eventOps);
-	printf("             op->name:             %s                 \n", base->eventOps->name);
-	printf("         eventIOHead:   %p                 \n", base->eventIOHead);
+	printf("             op->name:        %s                 \n", base->eventOps->name);
+	printf("         eventIOHead:     %p                 \n", base->eventIOHead);
 	for (ptr = base->eventIOHead; ptr != NULL; ptr = ptr->next)
 	{
-	printf("              event:                 %p         \n", ptr);
+	printf("             event:           %p             \n", ptr);
 	}
-	printf("         eventSigHead:  %p                 \n", base->eventSigHead);
+	printf("         eventSigHead:    %p                 \n", base->eventSigHead);
 	for (ptr = base->eventSigHead; ptr != NULL; ptr = ptr->next)
 	{
-	printf("              event:                 %p         \n", ptr);
+	printf("             event:           %p             \n", ptr);
 	}
-	printf("         eventTimeHead: %p                 \n", base->eventTimeHead);
+	printf("         eventTimeHead:   %p                 \n", base->eventTimeHead);
 	for (ptr = base->eventTimeHead; ptr != NULL; ptr = ptr->next)
 	{
-	printf("              event:                 %p         \n", ptr);
+	printf("              event:          %p             \n", ptr);
 	}
-	printf("         timeHeap:          %p                 \n", base->timeHeap);
-	printf("         eventActive:       %p                 \n", base->eventActive);
-	printf("********************************************\n");
+	printf("         timeHeap:        %p                 \n", base->timeHeap);
+	printf("         eventActive:     %p                 \n", base->eventActive);
+	printf("*********************************************\n");
 }

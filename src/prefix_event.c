@@ -102,32 +102,32 @@ void prefix_event_dump(prefix_event_t *event)
 	}
 
 	printf("********************************************\n");
-	printf("*************** event dump ***************\n");
+	printf("*************** event dump *****************\n");
 	printf("********************************************\n");
-	printf("   event: %p                                       \n", event);
-	printf("         prev:              %p                          \n", event->prev);
-	printf("         next:              %p                          \n", event->next);
-	printf("         base:              %p                          \n", event->base);
-	printf("         callback:         %p                          \n", event->callback);
-	printf("         arg:                %p                          \n", event->arg);
-	printf("         eventType:     %d                          \n", event->eventType);
+	printf("   event: %p                              \n", event);
+	printf("         prev:              %p            \n", event->prev);
+	printf("         next:              %p            \n", event->next);
+	printf("         base:              %p            \n", event->base);
+	printf("         callback:          %p            \n", event->callback);
+	printf("         arg:               %p            \n", event->arg);
+	printf("         eventType:         %d            \n", event->eventType);
 	if (EVENT_TYPE_IO == event->eventType)
 	{
-	printf("         ev.io.events:    %d                          \n", event->ev.io.events);
-	printf("         ev.io.fd:           %d                          \n", event->ev.io.fd);
-	printf("         ev.io.timeout.sec:   %d                          \n", (int)event->ev.io.timeout.tv_sec);
-	printf("         ev.io.timeout.usec:  %d                          \n", (int)event->ev.io.timeout.tv_usec);
+	printf("         ev.io.events:          %d        \n", event->ev.io.events);
+	printf("         ev.io.fd:              %d        \n", event->ev.io.fd);
+	printf("         ev.io.timeout.sec:     %d        \n", (int)event->ev.io.timeout.tv_sec);
+	printf("         ev.io.timeout.usec:    %d        \n", (int)event->ev.io.timeout.tv_usec);
 	}
 	else if (EVENT_TYPE_SIG == event->eventType)
 	{
-	printf("         ev.sig.events:  %d                          \n", event->ev.sig.events);
-	printf("         ev.sig.signo:    %d                          \n", event->ev.sig.signo);
+	printf("         ev.sig.events:         %d        \n", event->ev.sig.events);
+	printf("         ev.sig.signo:          %d        \n", event->ev.sig.signo);
 	}
 	else if (EVENT_TYPE_TIME == event->eventType)
 	{
-	printf("         ev.time.events:  %d                          \n", event->ev.time.events);
-	printf("         ev.time.timeout.sec:   %d                          \n", (int)event->ev.time.timeout.tv_sec);
-	printf("         ev.time.timeout.usec:  %d                          \n", (int)event->ev.time.timeout.tv_usec);
+	printf("         ev.time.events:        %d        \n", event->ev.time.events);
+	printf("         ev.time.timeout.sec:   %d        \n", (int)event->ev.time.timeout.tv_sec);
+	printf("         ev.time.timeout.usec:  %d        \n", (int)event->ev.time.timeout.tv_usec);
 	}
 	else
 	{

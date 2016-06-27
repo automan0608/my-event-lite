@@ -4,6 +4,7 @@
 #include <sys/time.h>
 
 #include "prefix_base.h"
+#include "prefix_log.h"
 
 int main()
 {
@@ -22,7 +23,7 @@ int main()
         result = prefix_base_timeval_cmp(tv1, tv2);
         if (result == 1)
         {
-            printf("test 01 success!\n");
+            prefix_log("debug", "test 01 success!");
         }
     }
 
@@ -37,7 +38,7 @@ int main()
         result = prefix_base_timeval_cmp(tv1, tv2);
         if (result == 1)
         {
-            printf("test 02 success!\n");
+            prefix_log("debug", "test 02 success!");
         }
     }
 
@@ -52,7 +53,7 @@ int main()
         result = prefix_base_timeval_cmp(tv1, tv2);
         if (result == 0)
         {
-            printf("test 03 success!\n");
+            prefix_log("debug", "test 03 success!");
         }
     }
 
@@ -67,7 +68,7 @@ int main()
         result = prefix_base_timeval_cmp(tv1, tv2);
         if (result == -1)
         {
-            printf("test 04 success!\n");
+            prefix_log("debug", "test 04 success!");
         }
     }
 
@@ -82,7 +83,7 @@ int main()
         result = prefix_base_timeval_cmp(tv1, tv2);
         if (result == -1)
         {
-            printf("test 05 success!\n");
+            prefix_log("debug", "test 05 success!");
         }
     }
 }
