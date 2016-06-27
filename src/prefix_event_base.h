@@ -6,7 +6,7 @@
 
 struct prefix_event_base_s
 {
-    prefix_event_op_t 		*eventOps;
+    const prefix_event_op_t 	*eventOps;
 
     prefix_event_t 		*eventIOHead;
     prefix_event_t 		*eventSigHead;

@@ -4,7 +4,7 @@
 
 #include "prefix_core.h"
 
-typedef struct prefix_min_heap_node_s prefix_min_heap_t;
+typedef struct prefix_min_heap_node_s prefix_min_heap_node_t;
 
 struct prefix_min_heap_node_s
 {
@@ -14,13 +14,19 @@ struct prefix_min_heap_node_s
 
 struct prefix_min_heap_s
 {
-	struct prefix_min_heap_node_s **node;
-	int n;
 	int slots;
+	int n;
+	struct prefix_min_heap_node_s **nodes;
 };
 
-prefix_min_heap_t *prefix_min_heap_create();
+prefix_min_heap_t *prefix_min_heap_init();
 
-void prefix_min_heap_free();
+int prefix_min_heap_push(prefix_min_heap_t *heap, struct timeval tv, prefix_event_t *event);
+
+prefix_event_t *prefix_min_heap_pop(prefix_min_heap_t *heap);
+
+void prefix_min_heap_free(prefix_min_heap_t *heap);
+
+void prefix_min_heap_dump(prefix_min_heap_t *heap);
 
 #endif

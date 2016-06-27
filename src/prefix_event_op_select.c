@@ -40,13 +40,13 @@ int select_add(prefix_event_base_t *base, int fd, short old, short events, void 
         int flag = 0;
         if (events & PREFIX_EV_READ)
         {
-                FD_SET(fd, object.event_readset_in);
+                FD_SET(fd, &object.event_readset_in);
                 flag = 1;
         }
 
         if (events & PREFIX_EV_WRITE)
         {
-                FD_SET(fd, object.event_writeset_in);
+                FD_SET(fd, &object.event_writeset_in);
                 flag = 1;
         }
 
