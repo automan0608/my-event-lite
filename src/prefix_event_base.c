@@ -59,37 +59,70 @@ int prefix_event_base_add_event(int type, prefix_event_t *event)
 		return ERROR;
 	}
 
-	prefix_event_t **head = NULL;
+	prefix_event_t **ptr = NULL;
 
 	switch (type)
 	{
 	case EVENT_TYPE_IO:
-		head = &event->base->eventIOHead;
+		ptr = &event->base->eventIOHead;
 		break;
 	case EVENT_TYPE_SIG:
-		head = &event->base->eventSigHead;
+		ptr = &event->base->eventSigHead;
 		break;
 	case EVENT_TYPE_TIME:
-		head = &event->base->eventTimeHead;
+		ptr = &event->base->eventTimeHead;
 		break;
 	default:
 		prefix_log("error", "no such type");
 		break;
 	}
 
-	if (NULL == *head)
+	if (NULL == *ptr)
 	{
-		*head = event;
+		*ptr = event;
 	}
 	else
 	{
-		while (NULL != (*head)->next)
+		while (NULL != (*ptr)->next)
 		{
-			head = &(*head)->next;
+			ptr = &(*ptr)->next;
 		}
-		(*head)->next = event;
-		event->prev = (*head)->next;
+		(*ptr)->next = event;
+//		event->prev = (*ptr)->next;
+		event->prev = *ptr;
+		event->next = NULL;
+
 	}
+	return SUCCESS;
+}
+
+int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t *event)
+{
+	if (NULL == base || NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	prefix_event_t **ptr = base->eventActive;
+
+	if (NULL == *ptr)
+	{
+		*ptr = event;
+	}
+	else
+	{
+		while (NULL != (*ptr)->activeNext)
+		{
+			ptr = &(*ptr)->activeNext;
+		}
+		(*ptr)->activeNext = event;
+		event->activePrev = (*ptr);
+		event->activeNext = NULL;
+	}
+
+	event->eventStatus |= EVENT_STATUS_ACTIVE;
+
 	return SUCCESS;
 }
 
@@ -111,37 +144,121 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 	prefix_event_t *ptr;
 	int flag = 0;
-	struct timeval tvMin = {0,0};
+	int result = 0;
+	struct timeval tvReactor = {0, 0};
 
-	// add all io events to reactor
-	if (NULL != base->eventIOHead)
+	struct timeval tvNow = {0, 0};
+	struct timeval tvMinHeapPut = {0, 0};
+	struct timeval *tvMinHeapGet = NULL;
+
+	// not all events are consumered
+	while (base->eventIOHead || base->eventSigHead || base->eventTimeHead)
 	{
-		ptr = base->eventIOHead;
-
-		while(ptr)
+		// add io events to reactor
+		if (NULL != base->eventIOHead)
 		{
-			// find out the min timeval, will use it as the timeout of reactor
-			if ( !(ptr->ev.io.timeout.tv_sec == 0 && ptr->ev.io.timeout.tv_usec == 0)
-				&& prefix_base_timeval_cmp(tvMin, ptr->ev.io.timeout) > 0)
-			{
-				tvMin.tv_sec = ptr->ev.io.timeout.tv_sec;
-				tvMin.tv_usec = ptr->ev.io.timeout.tv_usec;
-			}
+				ptr = base->eventIOHead;
 
-			flag = base->eventOps->add(base, ptr->ev.io.fd, 0, ptr->ev.io.events, NULL);
+				while(ptr)
+				{
+					// add the events with timeout to the min heap
+					// should check whether it has been added.
+					if (!(0 == ptr->ev.io.timeout.tv_sec && 0 == ptr->ev.io.timeout.tv_usec)
+						&& 0 == (ptr->eventStatus|EVENT_STATUS_IN_MIN_HEAP))
+					{
+						gettimeofday(&tvNow, NULL);
+						tvMinHeapPut.tv_sec = tvNow.tv_sec + ptr->ev.io.timeout.tv_sec;
+						tvMinHeapPut.tv_usec = tvNow.tv_usec + ptr->ev.io.timeout.tv_usec;
+
+						result = prefix_min_heap_push(base->timeHeap, tvMinHeapPut, ptr);
+						if (SUCCESS != result)
+						{
+							prefix_log("error", "min heap push error");
+							return  ERROR;
+						}
+
+						// already set in prefix_min_heap_push
+						// ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
+					}
+
+					flag = base->eventOps->add(base, ptr->ev.io.fd, 0, ptr->ev.io.events, NULL);
+					if (0 != flag)
+					{
+						//TODO
+					}
+
+					ptr = ptr->next;
+				}
+    	}
+
+		// add sig events to reactor
+		if (NULL != base->eventSigHead)
+		{
+			flag = base->eventOps->add(base, base->notifyFd[0], 0, PREFIX_EV_READ, NULL);
 			if (0 != flag)
 			{
 				//TODO
 			}
-
-			ptr = ptr->next;
 		}
-	}
 
+		// add time events to reactor
+		if (NULL != base->eventTimeHead)
+		{
+			ptr = base->eventTimeHead;
 
+			while(ptr)
+			{
+				if (!(0 == ptr->ev.time.timeout.tv_sec && 0 == ptr->ev.time.timeout.tv_usec)
+					&& 0 == (ptr->eventStatus|EVENT_STATUS_IN_MIN_HEAP))
+				{
+					gettimeofday(&tvNow, NULL);
+					tvMinHeapPut.tv_sec = tvNow.tv_sec + ptr->ev.time.timeout.tv_sec;
+					tvMinHeapPut.tv_usec = tvNow.tv_usec + ptr->ev.time.timeout.tv_usec;
+
+					result = prefix_min_heap_push(base->timeHeap, tvMinHeapPut, ptr);
+					if (SUCCESS != result)
+					{
+						prefix_log("error", "min heap push error");
+						return  ERROR;
+					}
+
+					ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
+				}
+			}
+		}
+
+		// set the timeout of the reactor
+		// tvMinHeapGet is a pointer
+		tvMinHeapGet = prefix_min_heap_get_top(base->timeHeap);
+		gettimeofday(&tvNow, NULL);
+		tvReactor.tv_sec = tvMinHeapGet->tv_sec - tvNow.tv_usec;
+		tvReactor.tv_usec = tvMinHeapGet->tv_usec - tvNow.tv_usec;
+
+		result = base->eventOps->dispatch(base, &tvReactor);
+		if (0 != flag)
+		{
+			//TODO
+		}
+
+		// invoke the callbacks
+		ptr = base->eventActive;
+		while (ptr)
+		{
+			// eventStatus will be set in the function
+			prefix_event_invoke(ptr);
+
+			ptr = ptr->activeNext;
+		}
+
+		// clean the active chain
+		// only need to clean the head,
+		// since the chain nodes will be reset when add to the chain again.
+		base->eventActive = NULL;
+
+		// reset all status
+    }
 
 	return SUCCESS;
-
 }
 
 // free all events and the event_base

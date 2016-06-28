@@ -50,6 +50,7 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 			event->ev.io.timeout.tv_sec = tv->tv_sec;
 			event->ev.io.timeout.tv_usec = tv->tv_usec;
 		}
+		// else timeout.tv_sec = 0, timeout.tv_usec = 0
 	}
 	else if (events & PREFIX_EV_SIG)
 	{
@@ -81,6 +82,29 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 	}
 
 	return event;
+}
+
+int prefix_event_set_active(prefix_event_t *event)
+{
+	if (NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	int result = prefix_event_base_set_event_active(event->base, event);
+	if (SUCCESS != result)
+	{
+		prefix_log("error", "set event active error");
+		return ERROR;
+	}
+
+	return SUCCESS;
+}
+
+int prefix_event_invoke(prefix_event_t *event)
+{
+
 }
 
 void prefix_event_free(prefix_event_t *event)

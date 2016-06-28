@@ -3,6 +3,7 @@
 
 #include "prefix_log.h"
 #include "prefix_base.h"
+#include "prefix_event.h"
 #include "prefix_min_heap.h"
 
 prefix_min_heap_t *prefix_min_heap_init()
@@ -94,6 +95,8 @@ int prefix_min_heap_push(prefix_min_heap_t *heap, struct timeval tv, prefix_even
 		break;
 	}
 
+	event->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
+
 	return SUCCESS;
 }
 
@@ -148,6 +151,7 @@ prefix_event_t *prefix_min_heap_pop(prefix_min_heap_t *heap)
 	heap->nodes[heap->n - 1] = NULL;
 	heap->n--;
 
+	event->eventStatus &= ~EVENT_STATUS_IN_MIN_HEAP;
 	return event;
 }
 
