@@ -369,9 +369,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			ptr = ptr->next;
 		}
 
-
 		// reset all status
-
     }
 
 	// for test
