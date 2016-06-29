@@ -1,6 +1,8 @@
 
 #include "prefix_log.h"
 
+char timebuf[20];
+
 #ifdef DEBUG
 int loglevel = 4;
 #endif

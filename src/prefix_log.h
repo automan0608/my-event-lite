@@ -4,11 +4,15 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 extern int loglevel;
+extern char timebuf[];
 
-#define prefix_log_raw(level, fmt, arg...) do { 		\
-		printf("%5s | %20s : %25s : %d | " fmt "\n", level, __FILE__, __FUNCTION__, __LINE__, ##arg); 	\
+#define prefix_log_raw(level, fmt, arg...) do { 				\
+		time_t timer = time(NULL); 								\
+		strftime(timebuf, 20, "%Y-%m-%d %H:%M:%S", localtime(&timer)); 	\
+		printf("%s | %5s | %20s : %25s : %d | " fmt "\n", timebuf, level, __FILE__, __FUNCTION__, __LINE__, ##arg); 	\
 	} while (0)
 
 #define prefix_log(level, fmt, arg...) do { 		\
