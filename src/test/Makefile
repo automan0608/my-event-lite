@@ -2,7 +2,8 @@ CFLAGS += -I../ -g
 LDFLAGS += -L../ -levent-lite
 
 target = test_event_base.out test_event_add.out \
-		 test_base.out test_min_heap.out
+		 test_base.out test_min_heap.out 	\
+		 test_event_time.out
 
 all:
 	cd ../ && make

@@ -27,6 +27,8 @@ int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t
 
 int prefix_event_base_dispatch(prefix_event_base_t *base);
 
+int prefix_event_base_remove_event(prefix_event_base_t *base, prefix_event_t *event);
+
 void prefix_event_base_free(prefix_event_base_t *base);
 
 void prefix_event_base_dump(prefix_event_base_t *base);

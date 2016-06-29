@@ -7,7 +7,7 @@
 #include "prefix_event.h"
 #include "prefix_min_heap.h"
 
-void callback(void *arg)
+void callback(int fd, short events, void *arg)
 {
 	printf("In callback\n");
 }
@@ -16,7 +16,7 @@ int main()
 {
 	prefix_event_base_t *base = prefix_event_base_new();
 
-	prefix_event_t *event = prefix_event_new(base, 5, PREFIX_EV_READ | PREFIX_EV_PERSIST, NULL, callback, NULL);
+	prefix_event_t *event = prefix_event_new(base, 5, EV_READ | EV_PERSIST, NULL, callback, NULL);
 
 	struct timeval tv = {0, 0};
 	struct timeval *tvGet;

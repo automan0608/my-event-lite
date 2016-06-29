@@ -18,6 +18,8 @@
 
 prefix_event_base_t *prefix_event_base_new()
 {
+	prefix_log("debug", "in");
+
 	prefix_event_base_t *base;
 
 	base = (prefix_event_base_t *)prefix_malloc(sizeof(prefix_event_base_t));
@@ -48,11 +50,14 @@ prefix_event_base_t *prefix_event_base_new()
 		return NULL;
 	}
 
+	prefix_log("debug", "out");
 	return base;
 }
 
 int prefix_event_base_add_event(int type, prefix_event_t *event)
 {
+	prefix_log("debug", "in");
+
 	if (!(type & (EVENT_TYPE_IO | EVENT_TYPE_SIG | EVENT_TYPE_TIME)))
 	{
 		prefix_log("error", "parameter error");
@@ -91,20 +96,22 @@ int prefix_event_base_add_event(int type, prefix_event_t *event)
 //		event->prev = (*ptr)->next;
 		event->prev = *ptr;
 		event->next = NULL;
-
 	}
+
+	prefix_log("debug", "out");
 	return SUCCESS;
 }
 
 int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t *event)
 {
+	prefix_log("debug", "in");
 	if (NULL == base || NULL == event)
 	{
 		prefix_log("error", "parameter error");
 		return ERROR;
 	}
 
-	prefix_event_t **ptr = base->eventActive;
+	prefix_event_t **ptr = &base->eventActive;
 
 	if (NULL == *ptr)
 	{
@@ -123,11 +130,15 @@ int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t
 
 	event->eventStatus |= EVENT_STATUS_ACTIVE;
 
+	prefix_log("debug", "out");
 	return SUCCESS;
 }
 
 int prefix_event_base_dispatch(prefix_event_base_t *base)
 {
+	prefix_log("debug", "in");
+	prefix_event_base_dump(base);
+
 	if (NULL == base)
 	{
 		prefix_log("error", "parameter error");
@@ -154,47 +165,53 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 	// not all events are consumered
 	while (base->eventIOHead || base->eventSigHead || base->eventTimeHead)
 	{
+		prefix_log("debug", "in dispatch while loop");
 		// add io events to reactor
 		if (NULL != base->eventIOHead)
 		{
-				ptr = base->eventIOHead;
+			prefix_log("debug", "base io event chain not NULL");
 
-				while(ptr)
+			ptr = base->eventIOHead;
+
+			while(ptr)
+			{
+				// add the events with timeout to the min heap
+				// should check whether it has been added.
+				if (!(0 == ptr->ev.io.timeout.tv_sec && 0 == ptr->ev.io.timeout.tv_usec)
+					&& 0 == (ptr->eventStatus & EVENT_STATUS_IN_MIN_HEAP))
 				{
-					// add the events with timeout to the min heap
-					// should check whether it has been added.
-					if (!(0 == ptr->ev.io.timeout.tv_sec && 0 == ptr->ev.io.timeout.tv_usec)
-						&& 0 == (ptr->eventStatus|EVENT_STATUS_IN_MIN_HEAP))
+					gettimeofday(&tvNow, NULL);
+					tvMinHeapPut.tv_sec = tvNow.tv_sec + ptr->ev.io.timeout.tv_sec;
+					tvMinHeapPut.tv_usec = tvNow.tv_usec + ptr->ev.io.timeout.tv_usec;
+
+					// will set eventStatus
+					result = prefix_min_heap_push(base->timeHeap, tvMinHeapPut, ptr);
+					if (SUCCESS != result)
 					{
-						gettimeofday(&tvNow, NULL);
-						tvMinHeapPut.tv_sec = tvNow.tv_sec + ptr->ev.io.timeout.tv_sec;
-						tvMinHeapPut.tv_usec = tvNow.tv_usec + ptr->ev.io.timeout.tv_usec;
-
-						result = prefix_min_heap_push(base->timeHeap, tvMinHeapPut, ptr);
-						if (SUCCESS != result)
-						{
-							prefix_log("error", "min heap push error");
-							return  ERROR;
-						}
-
-						// already set in prefix_min_heap_push
-						// ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
+						prefix_log("error", "min heap push error");
+						return  ERROR;
 					}
 
-					flag = base->eventOps->add(base, ptr->ev.io.fd, 0, ptr->ev.io.events, NULL);
-					if (0 != flag)
-					{
-						//TODO
-					}
-
-					ptr = ptr->next;
+					// already set in prefix_min_heap_push
+					// ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
 				}
+
+				flag = base->eventOps->add(base, ptr->ev.io.fd, 0, ptr->ev.io.events, NULL);
+				if (0 != flag)
+				{
+					//TODO
+				}
+
+				ptr = ptr->next;
+			}
     	}
 
 		// add sig events to reactor
 		if (NULL != base->eventSigHead)
 		{
-			flag = base->eventOps->add(base, base->notifyFd[0], 0, PREFIX_EV_READ, NULL);
+			prefix_log("debug", "base sig event chain not NULL");
+
+			flag = base->eventOps->add(base, base->notifyFd[0], 0, EV_READ, NULL);
 			if (0 != flag)
 			{
 				//TODO
@@ -204,17 +221,25 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		// add time events to reactor
 		if (NULL != base->eventTimeHead)
 		{
+			prefix_log("debug", "base time event chain not NULL");
+
 			ptr = base->eventTimeHead;
 
 			while(ptr)
 			{
-				if (!(0 == ptr->ev.time.timeout.tv_sec && 0 == ptr->ev.time.timeout.tv_usec)
-					&& 0 == (ptr->eventStatus|EVENT_STATUS_IN_MIN_HEAP))
+				prefix_log("debug", "ptr not NULL");
+
+//				if (!(0 == ptr->ev.time.timeout.tv_sec || 0 == ptr->ev.time.timeout.tv_usec)
+				if ((0 != ptr->ev.time.timeout.tv_sec || 0 != ptr->ev.time.timeout.tv_usec)
+					&& (0 == (ptr->eventStatus & EVENT_STATUS_IN_MIN_HEAP)))
 				{
+					prefix_log("debug", "will push min heap");
+
 					gettimeofday(&tvNow, NULL);
 					tvMinHeapPut.tv_sec = tvNow.tv_sec + ptr->ev.time.timeout.tv_sec;
 					tvMinHeapPut.tv_usec = tvNow.tv_usec + ptr->ev.time.timeout.tv_usec;
 
+					// will set eventStatus
 					result = prefix_min_heap_push(base->timeHeap, tvMinHeapPut, ptr);
 					if (SUCCESS != result)
 					{
@@ -224,21 +249,45 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 					ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
 				}
+
+				ptr = ptr->next;
 			}
 		}
 
+		// for test
+		prefix_log("debug", "set the timeout of the reactor");
+
 		// set the timeout of the reactor
 		// tvMinHeapGet is a pointer
-		tvMinHeapGet = prefix_min_heap_get_top(base->timeHeap);
-		gettimeofday(&tvNow, NULL);
-		tvReactor.tv_sec = tvMinHeapGet->tv_sec - tvNow.tv_usec;
-		tvReactor.tv_usec = tvMinHeapGet->tv_usec - tvNow.tv_usec;
+		// in case some event has already timeout, need a while loop
+		do {
+			tvMinHeapGet = prefix_min_heap_get_top(base->timeHeap);
+			gettimeofday(&tvNow, NULL);
+			tvReactor.tv_sec = tvMinHeapGet->tv_sec - tvNow.tv_sec;
+			tvReactor.tv_usec = tvMinHeapGet->tv_usec - tvNow.tv_usec;
+			if (0 > tvReactor.tv_usec)
+			{
+				tvReactor.tv_sec --;
+				tvReactor.tv_usec += 1000000;
+			}
+			if (0 > tvReactor.tv_sec)
+			{
+		        prefix_event_set_active(prefix_min_heap_pop(base->timeHeap));
+			}
+		} while (0 > tvReactor.tv_sec);
 
+		// for test
+		prefix_log("debug", "reactor dispatching");
+
+		// will set eventStatus in pop func
 		result = base->eventOps->dispatch(base, &tvReactor);
-		if (0 != flag)
+		if (SUCCESS != result)
 		{
 			//TODO
 		}
+
+		// for test
+		prefix_log("debug", "invoke the callback");
 
 		// invoke the callbacks
 		ptr = base->eventActive;
@@ -250,20 +299,101 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			ptr = ptr->activeNext;
 		}
 
+		// for test
+		prefix_log("debug", "clean the active chain");
+
 		// clean the active chain
 		// only need to clean the head,
 		// since the chain nodes will be reset when add to the chain again.
 		base->eventActive = NULL;
 
+		// for test
+		// prefix_event_base_dump(base);
+
+		// clean the event chains (io, sig, time)
+		// delete the useless events & reset all eventStatus
+		ptr = base->eventIOHead;
+		while (ptr)
+		{
+			if (!(ptr->ev.io.events|EV_PERSIST) && (ptr->eventStatus|EVENT_STATUS_INVOKED))
+			{
+				result = prefix_event_delete(ptr);
+				if (SUCCESS != result)
+				{
+					//TODO
+				}
+			}
+			else
+			{
+				ptr->eventStatus &= ~EVENT_STATUS_ACTIVE;
+				ptr->eventStatus &= ~EVENT_STATUS_INVOKED;
+			}
+			ptr = ptr->next;
+		}
+
 		// reset all status
+
     }
 
+	// for test
+	prefix_log("debug", "dispatch loop exit");
+
+	return SUCCESS;
+}
+
+// remove the event from the event_base event chain
+int prefix_event_base_remove_event(prefix_event_base_t *base, prefix_event_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == base || NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	prefix_event_t *ptr = NULL;
+	switch (event->eventType)
+	{
+	case EVENT_TYPE_IO:
+		ptr = base->eventIOHead;
+		break;
+	case EVENT_TYPE_SIG:
+		ptr = base->eventSigHead;
+		break;
+	case EVENT_TYPE_TIME:
+		ptr = base->eventTimeHead;
+		break;
+	default:
+		prefix_log("debug", "no such event type");
+		return ERROR;
+	}
+
+	if (ptr == event)
+	{
+		ptr = NULL;
+	}
+	else
+	{
+		event->prev->next = event->next;
+		if (NULL != event->next)
+		{
+			event->next->prev = event->prev;
+		}
+	}
+
+	event->prev = NULL;
+	event->next = NULL;
+
+	prefix_log("debug", "out");
 	return SUCCESS;
 }
 
 // free all events and the event_base
 void prefix_event_base_free(prefix_event_base_t *base)
 {
+	prefix_log("debug", "in");
+
 	if (NULL == base)
 	{
 		prefix_log("debug", "already freed");
@@ -298,6 +428,8 @@ void prefix_event_base_free(prefix_event_base_t *base)
 	// no need to free eventActive since it's all from the basic events
 
 	prefix_free(base);
+
+	prefix_log("debug", "out");
 }
 
 void prefix_event_base_dump(prefix_event_base_t *base)

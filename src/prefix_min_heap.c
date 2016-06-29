@@ -8,6 +8,8 @@
 
 prefix_min_heap_t *prefix_min_heap_init()
 {
+	prefix_log("debug", "in");
+
 	prefix_min_heap_t *heap;
 
 	heap = (prefix_min_heap_t *)prefix_malloc(sizeof(prefix_min_heap_t));
@@ -20,11 +22,14 @@ prefix_min_heap_t *prefix_min_heap_init()
 
 	memset(heap, 0, sizeof(prefix_min_heap_t));
 
+	prefix_log("debug", "out");
 	return heap;
 }
 
 int prefix_min_heap_push(prefix_min_heap_t *heap, struct timeval tv, prefix_event_t *event)
 {
+	prefix_log("debug", "in");
+
 	if (NULL == heap || (0 >= tv.tv_sec && 0 >= tv.tv_usec) || NULL == event)
 	{
 		prefix_log("error", "parameter error");
@@ -97,11 +102,14 @@ int prefix_min_heap_push(prefix_min_heap_t *heap, struct timeval tv, prefix_even
 
 	event->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
 
+	prefix_log("debug", "out");
 	return SUCCESS;
 }
 
 prefix_event_t *prefix_min_heap_pop(prefix_min_heap_t *heap)
 {
+	prefix_log("debug", "in");
+
 	if (NULL == heap)
 	{
 		prefix_log("error", "parameter error");
@@ -152,11 +160,15 @@ prefix_event_t *prefix_min_heap_pop(prefix_min_heap_t *heap)
 	heap->n--;
 
 	event->eventStatus &= ~EVENT_STATUS_IN_MIN_HEAP;
+
+	prefix_log("debug", "out");
 	return event;
 }
 
 struct timeval *prefix_min_heap_get_top(prefix_min_heap_t *heap)
 {
+	prefix_log("debug", "in");
+
 	if (NULL == heap)
 	{
 		prefix_log("error", "parameter error");
@@ -169,11 +181,14 @@ struct timeval *prefix_min_heap_get_top(prefix_min_heap_t *heap)
 		return NULL;
 	}
 
+	prefix_log("debug", "out");
 	return &heap->nodes[0]->tv;
 }
 
 void prefix_min_heap_free(prefix_min_heap_t *heap)
 {
+	prefix_log("debug", "in");
+
 	if (NULL == heap)
 	{
 		prefix_log("debug", "heap already freed");
@@ -183,6 +198,7 @@ void prefix_min_heap_free(prefix_min_heap_t *heap)
 	prefix_free(heap->nodes);
 	prefix_free(heap);
 
+	prefix_log("debug", "out");
 	return;
 }
 

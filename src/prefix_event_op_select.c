@@ -45,7 +45,7 @@ void *select_init(prefix_event_base_t *base)
 int select_add(prefix_event_base_t *base, int fd, short old, short events, void *arg)
 {
         int flag = 0;
-        if (events & PREFIX_EV_READ)
+        if (events & EV_READ)
         {
                 FD_SET(fd, &object.event_readset_in);
                 if (fd > object.maxfdp1 - 1)
@@ -55,7 +55,7 @@ int select_add(prefix_event_base_t *base, int fd, short old, short events, void 
                 flag = 1;
         }
 
-        if (events & PREFIX_EV_WRITE)
+        if (events & EV_WRITE)
         {
                 FD_SET(fd, &object.event_writeset_out);
                 if (fd > object.maxfdp1 - 1)
@@ -107,6 +107,7 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                         result = prefix_base_timeval_cmp(tvNow, *tvMinHeapGet);
                         if (0 <= result)
                         {
+                                // will set eventStatus
                                 prefix_event_set_active(prefix_min_heap_pop(base->timeHeap));
                         }
                         else
