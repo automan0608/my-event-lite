@@ -315,7 +315,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		ptr = base->eventIOHead;
 		while (ptr)
 		{
-			if (!(ptr->ev.io.events|EV_PERSIST) && (ptr->eventStatus|EVENT_STATUS_INVOKED))
+			if (!(ptr->ev.io.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
 			{
 				result = prefix_event_delete(ptr);
 				if (SUCCESS != result)
@@ -330,6 +330,45 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			}
 			ptr = ptr->next;
 		}
+
+		ptr = base->eventSigHead;
+		while (ptr)
+		{
+			if (!(ptr->ev.sig.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
+			{
+				result = prefix_event_delete(ptr);
+				if (SUCCESS != result)
+				{
+					//TODO
+				}
+			}
+			else
+			{
+				ptr->eventStatus &= ~EVENT_STATUS_ACTIVE;
+				ptr->eventStatus &= ~EVENT_STATUS_INVOKED;
+			}
+			ptr = ptr->next;
+		}
+
+		ptr = base->eventTimeHead;
+		while (ptr)
+		{
+			if (!(ptr->ev.time.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
+			{
+				result = prefix_event_delete(ptr);
+				if (SUCCESS != result)
+				{
+					//TODO
+				}
+			}
+			else
+			{
+				ptr->eventStatus &= ~EVENT_STATUS_ACTIVE;
+				ptr->eventStatus &= ~EVENT_STATUS_INVOKED;
+			}
+			ptr = ptr->next;
+		}
+
 
 		// reset all status
 

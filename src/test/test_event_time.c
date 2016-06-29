@@ -21,7 +21,7 @@ int main()
     prefix_event_t *event01 = prefix_event_new(base, 0, EV_TIME|EV_PERSIST, &tv01, cb01, NULL);
 
 	struct timeval tv02 = {2, 500000};
-    prefix_event_t *event02 = prefix_event_new(base, 0, EV_TIME|EV_PERSIST, &tv02, cb02, NULL);
+    prefix_event_t *event02 = prefix_event_new(base, 0, EV_TIME, &tv02, cb02, NULL);
 
     prefix_event_base_dispatch(base);
 }
