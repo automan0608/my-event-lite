@@ -10,6 +10,7 @@
 #include "prefix_event_op.h"
 #include "prefix_log.h"
 #include "prefix_event.h"
+#include "prefix_event_signal.h"
 #include "prefix_pipe.h"
 #include "prefix_min_heap.h"
 #include "prefix_base.h"
@@ -105,6 +106,7 @@ int prefix_event_base_add_event(int type, prefix_event_t *event)
 int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t *event)
 {
 	prefix_log("debug", "in");
+
 	if (NULL == base || NULL == event)
 	{
 		prefix_log("error", "parameter error");
@@ -137,6 +139,7 @@ int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t
 int prefix_event_base_dispatch(prefix_event_base_t *base)
 {
 	prefix_log("debug", "in");
+
 	prefix_event_base_dump(base);
 
 	if (NULL == base)
@@ -211,6 +214,21 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			prefix_log("debug", "base sig event chain not NULL");
 
+			ptr = base->eventSigHead;
+
+			while(ptr)
+			{
+				prefix_log("debug", "ptr not NULL");
+
+				if (0 == (ptr->eventStatus & EVENT_STATUS_SIG_INSTALLED))
+				{
+					signal(ptr->ev.sig.signo, signal_handler);
+					ptr->eventStatus &= EVENT_STATUS_SIG_INSTALLED;
+				}
+
+				ptr = ptr->next;
+			}
+
 			flag = base->eventOps->add(base, base->notifyFd[0], 0, EV_READ, NULL);
 			if (0 != flag)
 			{
@@ -247,7 +265,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 						return  ERROR;
 					}
 
-					ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
+					// ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
 				}
 
 				ptr = ptr->next;
@@ -256,6 +274,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 		// for test
 		prefix_log("debug", "set the timeout of the reactor");
+		//prefix_min_heap_dump(base->timeHeap);
 
 		// set the timeout of the reactor
 		// tvMinHeapGet is a pointer
@@ -277,7 +296,8 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		} while (0 > tvReactor.tv_sec);
 
 		// for test
-		prefix_log("debug", "reactor dispatching");
+		prefix_log("debug", "reactor dispatching, tv: %d.%d",
+							(int)tvReactor.tv_sec, (int)tvReactor.tv_usec);
 
 		// will set eventStatus in pop func
 		result = base->eventOps->dispatch(base, &tvReactor);
@@ -317,7 +337,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			if (!(ptr->ev.io.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
 			{
-				result = prefix_event_delete(ptr);
+				prefix_event_t *ptrtmp =ptr;
+				ptr = ptr->next;
+				result = prefix_event_delete(ptrtmp);
 				if (SUCCESS != result)
 				{
 					//TODO
@@ -327,8 +349,12 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			{
 				ptr->eventStatus &= ~EVENT_STATUS_ACTIVE;
 				ptr->eventStatus &= ~EVENT_STATUS_INVOKED;
+				ptr = ptr->next;
 			}
-			ptr = ptr->next;
+
+			// for test
+			prefix_log("debug", "some io events removed");
+			//prefix_event_base_dump(base);
 		}
 
 		ptr = base->eventSigHead;
@@ -336,7 +362,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			if (!(ptr->ev.sig.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
 			{
-				result = prefix_event_delete(ptr);
+				prefix_event_t *ptrtmp =ptr;
+				ptr = ptr->next;
+				result = prefix_event_delete(ptrtmp);
 				if (SUCCESS != result)
 				{
 					//TODO
@@ -346,8 +374,12 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			{
 				ptr->eventStatus &= ~EVENT_STATUS_ACTIVE;
 				ptr->eventStatus &= ~EVENT_STATUS_INVOKED;
+				ptr = ptr->next;
 			}
-			ptr = ptr->next;
+
+			// for test
+			prefix_log("debug", "some sig events removed");
+			// prefix_event_base_dump(base);
 		}
 
 		ptr = base->eventTimeHead;
@@ -355,7 +387,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			if (!(ptr->ev.time.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
 			{
-				result = prefix_event_delete(ptr);
+				prefix_event_t *ptrtmp =ptr;
+				ptr = ptr->next;
+				result = prefix_event_delete(ptrtmp);
 				if (SUCCESS != result)
 				{
 					//TODO
@@ -365,8 +399,12 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			{
 				ptr->eventStatus &= ~EVENT_STATUS_ACTIVE;
 				ptr->eventStatus &= ~EVENT_STATUS_INVOKED;
+				ptr = ptr->next;
 			}
-			ptr = ptr->next;
+
+			// for test
+			prefix_log("debug", "some time events removed");
+			// prefix_event_base_dump(base);
 		}
 
 		// reset all status
@@ -389,26 +427,26 @@ int prefix_event_base_remove_event(prefix_event_base_t *base, prefix_event_t *ev
 		return ERROR;
 	}
 
-	prefix_event_t *ptr = NULL;
+	prefix_event_t **ptr = NULL;
 	switch (event->eventType)
 	{
 	case EVENT_TYPE_IO:
-		ptr = base->eventIOHead;
+		ptr = &base->eventIOHead;
 		break;
 	case EVENT_TYPE_SIG:
-		ptr = base->eventSigHead;
+		ptr = &base->eventSigHead;
 		break;
 	case EVENT_TYPE_TIME:
-		ptr = base->eventTimeHead;
+		ptr = &base->eventTimeHead;
 		break;
 	default:
 		prefix_log("debug", "no such event type");
 		return ERROR;
 	}
 
-	if (ptr == event)
+	if (*ptr == event)
 	{
-		ptr = NULL;
+		*ptr = event->next;
 	}
 	else
 	{

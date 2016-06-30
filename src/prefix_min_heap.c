@@ -161,6 +161,8 @@ prefix_event_t *prefix_min_heap_pop(prefix_min_heap_t *heap)
 
 	event->eventStatus &= ~EVENT_STATUS_IN_MIN_HEAP;
 
+	// for test
+	// prefix_min_heap_dump(heap);
 	prefix_log("debug", "out");
 	return event;
 }

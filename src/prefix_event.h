@@ -24,8 +24,9 @@
 
 #define    EVENT_STATUS_AVAIL           0x01
 #define    EVENT_STATUS_IN_MIN_HEAP     0x02
-#define    EVENT_STATUS_ACTIVE          0x04
-#define    EVENT_STATUS_INVOKED         0x08
+#define    EVENT_STATUS_SIG_INSTALLED   0x04
+#define    EVENT_STATUS_ACTIVE          0x08
+#define    EVENT_STATUS_INVOKED         0x10
 
 struct prefix_event_s
 {
