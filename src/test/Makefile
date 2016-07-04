@@ -1,4 +1,4 @@
-CFLAGS += -I../ -g
+CFLAGS += -I../ -g -DDEBUG
 LDFLAGS += -L../ -levent-lite
 
 target = test_event_base.out test_event_add.out \

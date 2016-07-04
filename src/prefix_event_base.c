@@ -175,9 +175,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			prefix_log("debug", "base io event chain not NULL");
 
-			ptr = base->eventIOHead;
-
-			while(ptr)
+			for(ptr=base->eventIOHead;ptr;ptr=ptr->next)
 			{
 				// add the events with timeout to the min heap
 				// should check whether it has been added.
@@ -205,8 +203,6 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 				{
 					//TODO
 				}
-
-				ptr = ptr->next;
 			}
     	}
 
@@ -218,9 +214,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			prefix_log("debug", "base sig event chain not NULL");
 
-			ptr = base->eventSigHead;
-
-			while(ptr)
+			for(ptr=base->eventSigHead;ptr;ptr=ptr->next)
 			{
 				prefix_log("debug", "ptr not NULL");
 
@@ -246,9 +240,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			prefix_log("debug", "base time event chain not NULL");
 
-			ptr = base->eventTimeHead;
-
-			while(ptr)
+			for(ptr=base->eventTimeHead;ptr;ptr=ptr->next)
 			{
 				prefix_log("debug", "ptr not NULL");
 
@@ -272,8 +264,6 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 					// ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
 				}
-
-				ptr = ptr->next;
 			}
 		}
 
@@ -315,13 +305,10 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		prefix_log("debug", "invoke the callback");
 
 		// invoke the callbacks
-		ptr = base->eventActive;
-		while (ptr)
+		for(ptr=base->eventActive;ptr;ptr=ptr->next)
 		{
 			// eventStatus will be set in the function
 			prefix_event_invoke(ptr);
-
-			ptr = ptr->activeNext;
 		}
 
 		// for test
@@ -337,6 +324,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 		// clean the event chains (io, sig, time)
 		// delete the useless events & reset all eventStatus
+		// CANNOT MODIFY to for-loop
 		ptr = base->eventIOHead;
 		while (ptr)
 		{
@@ -362,6 +350,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			//prefix_event_base_dump(base);
 		}
 
+		// CANNOT MODIFY to for-loop
 		ptr = base->eventSigHead;
 		while (ptr)
 		{
@@ -387,6 +376,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			// prefix_event_base_dump(base);
 		}
 
+		// CANNOT MODIFY to for-loop
 		ptr = base->eventTimeHead;
 		while (ptr)
 		{
@@ -411,8 +401,6 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			prefix_log("debug", "some time events removed");
 			// prefix_event_base_dump(base);
 		}
-
-		// reset all status
     }
 
 	// for test

@@ -120,16 +120,13 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
         {
                 // IO events
                 prefix_event_t *ptr;
-                ptr = base->eventIOHead;
 
-                while (ptr)
+                for (ptr=base->eventIOHead;ptr;ptr=ptr->next)
                 {
                         if(FD_ISSET(ptr->ev.io.fd, &object.event_readset_in))
                         {
                                 prefix_event_set_active(ptr);
                         }
-
-                        ptr = ptr->next;
                 }
         }
 
