@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 #ifdef _USE_SELECT
 #include "prefix_event_op_select.h"
@@ -209,6 +210,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			}
     	}
 
+#if 0
+	/* at present, not support sig event */
+
 		// add sig events to reactor
 		if (NULL != base->eventSigHead)
 		{
@@ -235,6 +239,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 				//TODO
 			}
 		}
+#endif
 
 		// add time events to reactor
 		if (NULL != base->eventTimeHead)

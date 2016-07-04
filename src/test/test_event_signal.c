@@ -1,5 +1,7 @@
 
+#include <stdio.h>
 #include <signal.h>
+
 #include "event.h"
 
 void cb(int fd, short events, void *arg)
