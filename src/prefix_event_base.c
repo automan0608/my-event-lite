@@ -141,7 +141,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 {
 	prefix_log("debug", "in");
 
-	prefix_event_base_dump(base);
+//	prefix_event_base_dump(base);
 
 	if (NULL == base)
 	{
@@ -283,7 +283,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			if (NULL == tvMinHeapGet)
 			{
 				prefix_log("debug", "min heap empty");
-				tvReactor.tv_sec = 5;
+				tvReactor.tv_sec = 500;
 				tvReactor.tv_usec = 0;
 			}
 			else
@@ -310,6 +310,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 		// will set eventStatus in pop func
 		result = base->eventOps->dispatch(base, &tvReactor);
+		// for test
+		prefix_log("debug", "dispatch result:%d", result);
+		prefix_event_base_dump(base);
 		if (SUCCESS != result)
 		{
 			//TODO
@@ -317,10 +320,10 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 		// for test
 		prefix_log("debug", "invoke the callback");
-		prefix_event_base_dump(base);
+//		prefix_event_base_dump(base);
 
 		// invoke the callbacks
-		for(ptr=base->eventActive;ptr;ptr=ptr->next)
+		for(ptr=base->eventActive;ptr;ptr=ptr->activeNext)
 		{
 			// eventStatus will be set in the function
 			prefix_event_invoke(ptr);
@@ -430,7 +433,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			// prefix_event_base_dump(base);
 		}
 		prefix_log("debug", "at the tail of base dispatch");
-		prefix_event_base_dump(base);
+//		prefix_event_base_dump(base);
     }
 
 	// for test

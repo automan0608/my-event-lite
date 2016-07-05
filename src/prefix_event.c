@@ -126,7 +126,7 @@ int prefix_event_invoke(prefix_event_t *event)
 	switch (event->eventType)
 	{
 	case EVENT_TYPE_IO:
-		event->callback(event->ev.io.fd, CALLBACK_EVENT_GENERIC, NULL);
+		event->callback(event->ev.io.fd, CALLBACK_EVENT_GENERIC, event->arg);
 		break;
 	case EVENT_TYPE_SIG:
 	case EVENT_TYPE_TIME:
@@ -207,6 +207,8 @@ void prefix_event_dump(prefix_event_t *event)
 	printf("   event: %p                              \n", event);
 	printf("         prev:              %p            \n", event->prev);
 	printf("         next:              %p            \n", event->next);
+	printf("         activePrev:        %p            \n", event->activePrev);
+	printf("         activeNext:        %p            \n", event->activeNext);
 	printf("         base:              %p            \n", event->base);
 	printf("         callback:          %p            \n", event->callback);
 	printf("         arg:               %p            \n", event->arg);
