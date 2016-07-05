@@ -201,9 +201,9 @@ void prefix_event_dump(prefix_event_t *event)
 		return;
 	}
 
-	printf("********************************************\n");
-	printf("*************** event dump *****************\n");
-	printf("********************************************\n");
+	printf("--------------------------------------------\n");
+	printf("--------------- event dump -----------------\n");
+	printf("--------------------------------------------\n");
 	printf("   event: %p                              \n", event);
 	printf("         prev:              %p            \n", event->prev);
 	printf("         next:              %p            \n", event->next);
@@ -234,5 +234,5 @@ void prefix_event_dump(prefix_event_t *event)
 	{
 	printf("             !!! eventType not found !!!!        \n");
 	}
-	printf("********************************************\n");
+	printf("--------------------------------------------\n");
 }
