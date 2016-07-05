@@ -123,7 +123,19 @@ int prefix_event_invoke(prefix_event_t *event)
 	}
 
 	// void (*cb)(prefix_socket_t fd, short event, void *arg);
-	event->callback(0, CALLBACK_EVENT_GENERIC, NULL);
+	switch (event->eventType)
+	{
+	case EVENT_TYPE_IO:
+		event->callback(event->ev.io.fd, CALLBACK_EVENT_GENERIC, NULL);
+		break;
+	case EVENT_TYPE_SIG:
+	case EVENT_TYPE_TIME:
+		event->callback(0, CALLBACK_EVENT_GENERIC, NULL);
+		break;
+	default:
+		prefix_log("debug", "no such event type");
+		return ERROR;
+	}
 
 	event->eventStatus |= EVENT_STATUS_INVOKED;
 
@@ -148,12 +160,26 @@ int prefix_event_delete(prefix_event_t *event)
 		return ERROR;
 	}
 
-	prefix_event_free(event);
+	prefix_event_free_inner(event);
 	prefix_log("debug", "out");
 	return SUCCESS;
 }
 
 void prefix_event_free(prefix_event_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == event)
+	{
+		prefix_log("debug", "already freed");
+	}
+
+	event->eventStatus |= EVENT_STATUS_FREED;
+
+	prefix_log("debug", "out");
+}
+
+void prefix_event_free_inner(prefix_event_t *event)
 {
 	prefix_log("debug", "in");
 

@@ -91,6 +91,8 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
         tvSelect.tv_sec = tv->tv_sec;
         tvSelect.tv_usec = tv->tv_usec;
 
+        // for test
+        prefix_log("debug", "maxfdp1:%d", object.maxfdp1);
         result = select(object.maxfdp1, &object.event_readset_in,
                                 &object.event_writeset_out, NULL, &tvSelect);
         if (0 > result)
@@ -100,6 +102,7 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
         }
         else if (0 == result)
         {
+                prefix_log("debug", "select timeout");
                 // time events
                 while (NULL != (tvMinHeapGet = prefix_min_heap_get_top(base->timeHeap)))
                 {
@@ -118,6 +121,7 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
         }
         else
         {
+                prefix_log("debug", "select event happens");
                 // IO events
                 prefix_event_t *ptr;
 
@@ -125,6 +129,8 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                 {
                         if(FD_ISSET(ptr->ev.io.fd, &object.event_readset_in))
                         {
+                                prefix_log("debug", "readset io fd:%d ok",
+                                                ptr->ev.io.fd);
                                 prefix_event_set_active(ptr);
                         }
                 }

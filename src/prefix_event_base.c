@@ -170,6 +170,10 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 	while (base->eventIOHead || base->eventSigHead || base->eventTimeHead)
 	{
 		prefix_log("debug", "in dispatch while loop");
+
+		// init event base reactor
+		base->eventOps->init(base);
+
 		// add io events to reactor
 		if (NULL != base->eventIOHead)
 		{
@@ -276,17 +280,27 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		// in case some event has already timeout, need a while loop
 		do {
 			tvMinHeapGet = prefix_min_heap_get_top(base->timeHeap);
-			gettimeofday(&tvNow, NULL);
-			tvReactor.tv_sec = tvMinHeapGet->tv_sec - tvNow.tv_sec;
-			tvReactor.tv_usec = tvMinHeapGet->tv_usec - tvNow.tv_usec;
-			if (0 > tvReactor.tv_usec)
+			if (NULL == tvMinHeapGet)
 			{
-				tvReactor.tv_sec --;
-				tvReactor.tv_usec += 1000000;
+				prefix_log("debug", "min heap empty");
+				tvReactor.tv_sec = 5;
+				tvReactor.tv_usec = 0;
 			}
-			if (0 > tvReactor.tv_sec)
+			else
 			{
-		        prefix_event_set_active(prefix_min_heap_pop(base->timeHeap));
+
+				gettimeofday(&tvNow, NULL);
+				tvReactor.tv_sec = tvMinHeapGet->tv_sec - tvNow.tv_sec;
+				tvReactor.tv_usec = tvMinHeapGet->tv_usec - tvNow.tv_usec;
+				if (0 > tvReactor.tv_usec)
+				{
+					tvReactor.tv_sec --;
+					tvReactor.tv_usec += 1000000;
+				}
+				if (0 > tvReactor.tv_sec)
+				{
+			        prefix_event_set_active(prefix_min_heap_pop(base->timeHeap));
+				}
 			}
 		} while (0 > tvReactor.tv_sec);
 
@@ -303,6 +317,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 		// for test
 		prefix_log("debug", "invoke the callback");
+		prefix_event_base_dump(base);
 
 		// invoke the callbacks
 		for(ptr=base->eventActive;ptr;ptr=ptr->next)
@@ -322,13 +337,14 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		// for test
 		// prefix_event_base_dump(base);
 
-		// clean the event chains (io, sig, time)
+		// clean the event chains (io)
 		// delete the useless events & reset all eventStatus
 		// CANNOT MODIFY to for-loop
 		ptr = base->eventIOHead;
 		while (ptr)
 		{
-			if (!(ptr->ev.io.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
+			if ((!(ptr->ev.io.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
+				|| (ptr->eventStatus & EVENT_STATUS_FREED))
 			{
 				prefix_event_t *ptrtmp =ptr;
 				ptr = ptr->next;
@@ -337,6 +353,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 				{
 					//TODO
 				}
+
+				// for test
+				prefix_log("debug", "one io event removed");
 			}
 			else
 			{
@@ -346,15 +365,17 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			}
 
 			// for test
-			prefix_log("debug", "some io events removed");
 			//prefix_event_base_dump(base);
 		}
 
+		// clean the event chains (sig)
+		// delete the useless events & reset all eventStatus
 		// CANNOT MODIFY to for-loop
 		ptr = base->eventSigHead;
 		while (ptr)
 		{
-			if (!(ptr->ev.sig.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
+			if ((!(ptr->ev.sig.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
+				|| (ptr->eventStatus & EVENT_STATUS_FREED))
 			{
 				prefix_event_t *ptrtmp =ptr;
 				ptr = ptr->next;
@@ -363,6 +384,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 				{
 					//TODO
 				}
+
+				// for test
+				prefix_log("debug", "one sig event removed");
 			}
 			else
 			{
@@ -372,15 +396,17 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			}
 
 			// for test
-			prefix_log("debug", "some sig events removed");
 			// prefix_event_base_dump(base);
 		}
 
+		// clean the event chains (time)
+		// delete the useless events & reset all eventStatus
 		// CANNOT MODIFY to for-loop
 		ptr = base->eventTimeHead;
 		while (ptr)
 		{
-			if (!(ptr->ev.time.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
+			if ((!(ptr->ev.time.events & EV_PERSIST) && (ptr->eventStatus & EVENT_STATUS_INVOKED))
+				|| (ptr->eventStatus & EVENT_STATUS_FREED))
 			{
 				prefix_event_t *ptrtmp =ptr;
 				ptr = ptr->next;
@@ -389,6 +415,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 				{
 					//TODO
 				}
+
+				// for test
+				prefix_log("debug", "one time event removed");
 			}
 			else
 			{
@@ -398,9 +427,10 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			}
 
 			// for test
-			prefix_log("debug", "some time events removed");
 			// prefix_event_base_dump(base);
 		}
+		prefix_log("debug", "at the tail of base dispatch");
+		prefix_event_base_dump(base);
     }
 
 	// for test
@@ -474,21 +504,21 @@ void prefix_event_base_free(prefix_event_base_t *base)
 	{
 		ptr = base->eventIOHead;
 		base->eventIOHead = base->eventIOHead->next;
-		prefix_event_free(ptr);
+		prefix_event_free_inner(ptr);
 	}
 
 	while (NULL != base->eventSigHead)
 	{
 		ptr = base->eventSigHead;
 		base->eventSigHead = base->eventSigHead->next;
-		prefix_event_free(ptr);
+		prefix_event_free_inner(ptr);
 	}
 
 	while (NULL != base->eventTimeHead)
 	{
 		ptr = base->eventTimeHead;
 		base->eventTimeHead = base->eventTimeHead->next;
-		prefix_event_free(ptr);
+		prefix_event_free_inner(ptr);
 	}
 
 	prefix_min_heap_free(base->timeHeap);
@@ -520,18 +550,26 @@ void prefix_event_base_dump(prefix_event_base_t *base)
 	for (ptr = base->eventIOHead; ptr != NULL; ptr = ptr->next)
 	{
 	printf("             event:           %p             \n", ptr);
+	prefix_event_dump(ptr);
 	}
 	printf("         eventSigHead:    %p                 \n", base->eventSigHead);
 	for (ptr = base->eventSigHead; ptr != NULL; ptr = ptr->next)
 	{
 	printf("             event:           %p             \n", ptr);
+	prefix_event_dump(ptr);
 	}
 	printf("         eventTimeHead:   %p                 \n", base->eventTimeHead);
 	for (ptr = base->eventTimeHead; ptr != NULL; ptr = ptr->next)
 	{
 	printf("              event:          %p             \n", ptr);
+	prefix_event_dump(ptr);
 	}
 	printf("         timeHeap:        %p                 \n", base->timeHeap);
 	printf("         eventActive:     %p                 \n", base->eventActive);
+	for (ptr = base->eventActive; ptr != NULL; ptr = ptr->activeNext)
+	{
+	printf("             event:           %p             \n", ptr);
+	prefix_event_dump(ptr);
+	}
 	printf("*********************************************\n");
 }

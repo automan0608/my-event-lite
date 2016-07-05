@@ -27,6 +27,7 @@
 #define    EVENT_STATUS_SIG_INSTALLED   0x04
 #define    EVENT_STATUS_ACTIVE          0x08
 #define    EVENT_STATUS_INVOKED         0x10
+#define    EVENT_STATUS_FREED           0x20
 
 struct prefix_event_s
 {
@@ -75,6 +76,8 @@ int prefix_event_invoke(prefix_event_t *event);
 int prefix_event_delete(prefix_event_t *event);
 
 void prefix_event_free(prefix_event_t *event);
+
+void prefix_event_free_inner(prefix_event_t *event);
 
 void prefix_event_dump(prefix_event_t *event);
 
