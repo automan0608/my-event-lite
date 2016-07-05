@@ -12,12 +12,11 @@
 #define PORT 6000
 #define MAXLINE 1024
 
-prefix_event_base_t *base;
-prefix_event_t *event;
-
 void cb(int fd, short events, void *arg)
 {
 	printf("in callback, fd:%d, events:%d, arg:%p\n", fd, events, arg);
+
+    prefix_event_t **ev = (prefix_event_t **)arg;
 
 	ssize_t n;
 	char buf[MAXLINE];
@@ -32,7 +31,7 @@ cb_again:
 	else if (0 == n)
 	{
 		close(fd);
-		prefix_event_free(event);
+		prefix_event_free(*ev);
 	}
 	else
 	{
@@ -52,6 +51,9 @@ int main(int argc, char const *argv[])
 	int listenfd, connfd;
 	socklen_t clilen;
 	int result;
+
+    prefix_event_base_t *base;
+    prefix_event_t *event;
 
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     if (0 > listenfd)
@@ -109,8 +111,9 @@ again:
     	return -1;
     }
 
-    event = prefix_event_new(base, connfd, EV_READ|EV_PERSIST, NULL, cb, NULL);
-//    event = prefix_event_new(base, connfd, EV_READ, NULL, cb, NULL);
+    // be carefull, here pass the ptr of event(event is a point)
+    event = prefix_event_new(base, connfd, EV_READ|EV_PERSIST, NULL, cb, &event);
+//    event = prefix_event_new(base, connfd, EV_READ, NULL, cb, &event);
     printf("event new:%p\n", event);
 
     prefix_event_base_dispatch(base);
