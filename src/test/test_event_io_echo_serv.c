@@ -23,14 +23,11 @@ void cb(int fd, short events, void *arg)
 	char buf[MAXLINE];
 
 cb_again:
-    printf("11111111\n");
 	n = read(fd, buf, MAXLINE);
-    printf("read n:%d\n", n);
+    printf("read n:%d\n", (int)n);
 	if (0 < n)
 	{
-	    printf("33333333\n");
 		write(fd, buf, n);
-	    printf("44444444\n");
 	}
 	else if (0 == n)
 	{
