@@ -148,8 +148,13 @@ int main(int argc, char const *argv[])
     arg_cbio.event_cml = &event_cml;
     arg_cbio.event_io = &event_io;
 
+#if 0
+    event_cml = prefix_event_new(base, fileno(stdin), EV_READ, NULL, cbcml, (void *)&arg_cbcml);
+    event_io = prefix_event_new(base, sockfd, EV_READ, NULL, cbio, (void *)&arg_cbio);
+#else
     event_cml = prefix_event_new(base, fileno(stdin), EV_READ|EV_PERSIST, NULL, cbcml, (void *)&arg_cbcml);
     event_io = prefix_event_new(base, sockfd, EV_READ|EV_PERSIST, NULL, cbio, (void *)&arg_cbio);
+#endif
 
     prefix_event_base_dispatch(base);
 
