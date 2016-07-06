@@ -1,5 +1,6 @@
-CFLAGS += -I../ -g -DDEBUG
+CFLAGS += -I../ -g
 LDFLAGS += -L../ -levent-lite
+LDFLAGS += #-DDEBUG
 
 target = test_event_base.out test_event_add.out \
 		 test_base.out test_min_heap.out 	\
