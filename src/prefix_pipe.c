@@ -63,3 +63,41 @@ static int prefix_pipe_set_closeonexec(int fd)
 	}
 	return SUCCESS;
 }
+
+int prefix_pipe_write(int fd, char buf[], ssize_t n)
+{
+	if (0 >= fd || NULL == buf || 0 >= n)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	ssize_t result = 0;
+	result = write(fd, buf, n);
+	if (n != result)
+	{
+		prefix_log("error", "write pipe error");
+		return ERROR;
+	}
+
+	return SUCCESS;
+}
+
+int prefix_pipe_read(int fd, char buf[], ssize_t n)
+{
+	if (0 >= fd || NULL == buf || 0 >= n)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	ssize_t result = 0;
+	result = read(fd, buf, n);
+	if (n != result)
+	{
+		prefix_log("error", "read pipe error");
+		return ERROR;
+	}
+
+	return SUCCESS;
+}
