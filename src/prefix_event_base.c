@@ -312,7 +312,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		result = base->eventOps->dispatch(base, &tvReactor);
 		// for test
 		prefix_log("debug", "dispatch result:%d", result);
-		prefix_event_base_dump(base);
+		//prefix_event_base_dump(base);
 		if (SUCCESS != result)
 		{
 			//TODO
