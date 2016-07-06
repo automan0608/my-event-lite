@@ -4,6 +4,7 @@
 
 #include "prefix_log.h"
 #include "prefix_event_base.h"
+#include "prefix_event_signal.h"
 
 #include "prefix_event.h"
 
@@ -30,7 +31,10 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 		return NULL;
 	}
 
-	prefix_event_t *event = (prefix_event_t *)prefix_malloc(sizeof(prefix_event_t));
+	int result = 0;
+	prefix_event_t *event = NULL;
+
+	event = (prefix_event_t *)prefix_malloc(sizeof(prefix_event_t));
 	if (NULL == event)
 	{
 		prefix_log("error", "malloc error");
@@ -59,6 +63,12 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 		event->eventType = EVENT_TYPE_SIG;
 		event->ev.sig.events = events;
 		event->ev.sig.signo = fd;
+		result = prefix_event_signal_register(base, fd);
+		if (SUCCESS != result)
+		{
+			prefix_log("error", "signal register error");
+			return NULL;
+		}
 	}
 	else if (events & EV_TIME)
 	{
@@ -77,7 +87,7 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 		return NULL;
 	}
 
-	int result = prefix_event_base_add_event(event->eventType, event);
+	result = prefix_event_base_add_event(event->eventType, event);
 	if (SUCCESS != result)
 	{
 		prefix_log("error", "add event to eventbase error");
@@ -129,6 +139,8 @@ int prefix_event_invoke(prefix_event_t *event)
 		event->callback(event->ev.io.fd, CALLBACK_EVENT_GENERIC, event->arg);
 		break;
 	case EVENT_TYPE_SIG:
+		event->callback(event->ev.sig.signo, CALLBACK_EVENT_GENERIC, event->arg);
+		break;
 	case EVENT_TYPE_TIME:
 		event->callback(0, CALLBACK_EVENT_GENERIC, NULL);
 		break;
@@ -158,6 +170,12 @@ int prefix_event_delete(prefix_event_t *event)
 	{
 		prefix_log("error", "remove event from base error");
 		return ERROR;
+	}
+
+	// if is sig event, need to unregister
+	if (event->eventType == EVENT_TYPE_SIG)
+	{
+		prefix_event_signal_unregister(event->ev.sig.signo);
 	}
 
 	prefix_event_free_inner(event);

@@ -43,6 +43,8 @@ prefix_event_base_t *prefix_event_base_new()
 		prefix_log("error", "create pipe error");
 		return NULL;
 	}
+	prefix_log("error", "create pipe success, [%d:%d]",
+					base->notifyFd[0], base->notifyFd[1]);
 
 	base->timeHeap = prefix_min_heap_init();
 	if (NULL == base->timeHeap)
@@ -170,6 +172,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 	while (base->eventIOHead || base->eventSigHead || base->eventTimeHead)
 	{
 		prefix_log("debug", "in dispatch while loop");
+//		prefix_event_base_dump(base);
 
 		// init event base reactor
 		base->eventOps->init(base);
@@ -210,7 +213,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			}
     	}
 
-#if 0
+#if 1
 	/* at present, not support sig event */
 
 		// add sig events to reactor
@@ -218,7 +221,8 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			prefix_log("debug", "base sig event chain not NULL");
 
-			for(ptr=base->eventSigHead;ptr;ptr=ptr->next)
+#if 0
+			for(ptr=base->eventSigHead; ptr; ptr=ptr->next)
 			{
 				prefix_log("debug", "ptr not NULL");
 
@@ -230,6 +234,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 				ptr = ptr->next;
 			}
+#endif
 
 			flag = base->eventOps->add(base, base->notifyFd[0], 0, EV_READ, NULL);
 			if (0 != flag)
@@ -273,7 +278,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 		// for test
 		prefix_log("debug", "set the timeout of the reactor");
-		//prefix_min_heap_dump(base->timeHeap);
+//		prefix_min_heap_dump(base->timeHeap);
 
 		// set the timeout of the reactor
 		// tvMinHeapGet is a pointer

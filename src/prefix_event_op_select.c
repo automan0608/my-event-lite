@@ -134,7 +134,26 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                                 prefix_event_set_active(ptr);
                         }
                 }
-        }
 
+                if (FD_ISSET(base->notifyFd[0], &object.event_readset_in))
+                {
+                        int signo = 0;
+
+                        if (0 >= (signo = prefix_event_signal_read(base)))
+                        {
+                                prefix_log("error", "read signal error");
+                        }
+                        else
+                        {
+                                for (ptr=base->eventSigHead;ptr;ptr=ptr->next)
+                                {
+                                        if(signo == ptr->ev.sig.signo)
+                                        {
+                                                prefix_event_set_active(ptr);
+                                        }
+                                }
+                        }
+                }
+        }
         return SUCCESS;
 }

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -107,11 +108,18 @@ void cbtime(int fd, short events, void *arg)
     printf("in time callback\n");
 }
 
+void cbsig(int fd, short events, void *arg)
+{
+    printf("in signal callback, signo:%d\n", fd);
+}
+
 int main(int argc, char const *argv[])
 {
     prefix_event_base_t *base;
     prefix_event_t *event_cml;
     prefix_event_t *event_io;
+    prefix_event_t *event_time;
+    prefix_event_t *event_sig;
 
     struct sockaddr_in servaddr;
     int result = 0, sockfd = 0;
@@ -159,7 +167,9 @@ int main(int argc, char const *argv[])
     struct timeval tv;
     tv.tv_sec = 3;
     tv.tv_usec = 0;
-    event_io = prefix_event_new(base, -1, EV_TIME|EV_PERSIST, &tv, cbtime, NULL);
+    event_time = prefix_event_new(base, -1, EV_TIME|EV_PERSIST, &tv, cbtime, NULL);
+
+    event_sig = prefix_event_new(base, SIGINT, EV_SIG|EV_PERSIST, NULL, cbsig, NULL);
 
     prefix_event_base_dispatch(base);
 
