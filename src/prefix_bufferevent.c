@@ -147,6 +147,7 @@ int prefix_bufferevent_write(prefix_bufferevent_t *event, const char *buf, size_
 		}
 		memset(ptr, 0, sizeTotal);
 
+		event->output->blockNum += nblock;
 		for (i = 0; i < nblock; ++i)
 		{
 			((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->length = event->output->blockSize;
@@ -176,16 +177,18 @@ int prefix_bufferevent_write(prefix_bufferevent_t *event, const char *buf, size_
 			if (i != nblock - 1)
 			{
 				memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + i*event->output->blockSize, event->output->blockSize);
+				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->ptrTail = event->output->blockSize;
 			}
 			else
 			{
-				memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + i*event->output->blockSize, len%event->output->blockSize);
+				memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + i*event->output->blockSize, (len - 1)%event->output->blockSize + 1);
+				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->ptrTail = (len-1)%event->output->blockSize+1;
 			}
 
-			((prefix_evbuffer_block_t *)(ptr))->prev = NULL;
-			((prefix_evbuffer_block_t *)(ptr + (nblock-1)*sizeSingle))->next = NULL;
 #endif
 		}
+		((prefix_evbuffer_block_t *)(ptr))->prev = NULL;
+		((prefix_evbuffer_block_t *)(ptr + (nblock-1)*sizeSingle))->next = NULL;
 
 		event->output->blockHead = (prefix_evbuffer_block_t *)(ptr);
 		event->output->blockTail = (prefix_evbuffer_block_t *)(ptr + (nblock-1)*sizeSingle);
@@ -194,7 +197,7 @@ int prefix_bufferevent_write(prefix_bufferevent_t *event, const char *buf, size_
 	{
 		size_t nTailLeft = event->output->blockTail->length - event->output->blockTail->ptrTail;
 
-		nblock = (len -nTailLeft)/event->output->blockSize + 1;
+		nblock = (len -nTailLeft - 1)/event->output->blockSize + 1;
 		sizeSingle = sizeof(prefix_evbuffer_block_t) + event->output->blockSize;
 		sizeTotal = nblock * sizeSingle;
 
@@ -210,10 +213,12 @@ int prefix_bufferevent_write(prefix_bufferevent_t *event, const char *buf, size_
 		memcpy(event->output->blockTail->buf + event->output->blockTail->ptrTail, buf, nTailLeft);
 		event->output->blockTail->ptrTail = event->output->blockTail->length;
 
+		event->output->blockNum += nblock;
 		for (i = 0; i < nblock; ++i)
 		{
 			((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->length = event->output->blockSize;
 
+#if 0
 			if (0 == i)
 			{
 				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->prev = event->output->blockTail;
@@ -232,7 +237,25 @@ int prefix_bufferevent_write(prefix_bufferevent_t *event, const char *buf, size_
 				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->next = NULL;
 				memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + i*event->output->blockSize, (len-nTailLeft)%event->output->blockSize);
 			}
+#else
+			((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->prev = (prefix_evbuffer_block_t *)(ptr + (i-1)*sizeSingle);
+			((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->next = (prefix_evbuffer_block_t *)(ptr + (i+1)*sizeSingle);
+			if (i != nblock - 1)
+			{
+				memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + nTailLeft + i*event->output->blockSize, event->output->blockSize);
+				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->ptrTail = event->output->blockSize;
+			}
+			else
+			{
+				memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + nTailLeft + i*event->output->blockSize, (len - nTailLeft - 1)%event->output->blockSize + 1);
+				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->ptrTail = (len - nTailLeft - 1)%event->output->blockSize + 1;
+			}
+
+#endif
 		}
+		((prefix_evbuffer_block_t *)(ptr))->prev = event->output->blockTail;
+		event->output->blockTail->next = (prefix_evbuffer_block_t *)ptr;
+		((prefix_evbuffer_block_t *)(ptr + (nblock-1)*sizeSingle))->next = NULL;
 
 		event->output->blockTail = (prefix_evbuffer_block_t *)(ptr + (i-1)*sizeSingle);
 	}
@@ -290,7 +313,7 @@ void prefix_bufferevent_dump(prefix_bufferevent_t *event)
 	printf("         input->blockTail:  %p            \n", event->input->blockTail);
 	for (i = 0,ptr = event->input->blockHead;ptr;ptr=ptr->next,i++)
 	{
-	printf("         	block: 			%d            \n", i);
+	printf("         	block %d:		%p    		  \n", i, ptr);
 	printf("            block->prev:    %p            \n", ptr->prev);
 	printf("            block->next:    %p            \n", ptr->next);
 	printf("            block->length:  %d            \n", ptr->length);
@@ -306,7 +329,7 @@ void prefix_bufferevent_dump(prefix_bufferevent_t *event)
 	printf("         output->blockTail: %p            \n", event->output->blockTail);
 	for (i = 0,ptr = event->output->blockHead;ptr;ptr=ptr->next,i++)
 	{
-	printf("         	block: 			%d            \n", i);
+	printf("         	block %d:		%p    		  \n", i, ptr);
 	printf("            block->prev:    %p            \n", ptr->prev);
 	printf("            block->next:    %p            \n", ptr->next);
 	printf("            block->length:  %d            \n", ptr->length);
