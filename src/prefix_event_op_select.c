@@ -8,6 +8,7 @@
 #include "prefix_base.h"
 #include "prefix_event.h"
 #include "prefix_event_base.h"
+#include "prefix_event_signal.h"
 #include "prefix_min_heap.h"
 #include "prefix_event_op.h"
 #include "prefix_event_op_select.h"
@@ -111,7 +112,7 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                         if (0 <= result)
                         {
                                 // will set eventStatus
-                                prefix_event_set_active(prefix_min_heap_pop(base->timeHeap));
+                                prefix_event_set_active(prefix_min_heap_pop(base->timeHeap), EVENT_ACTIVETYPE_TIMEOUT);
                         }
                         else
                         {
@@ -131,7 +132,7 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                         {
                                 prefix_log("debug", "readset io fd:%d ok",
                                                 ptr->ev.io.fd);
-                                prefix_event_set_active(ptr);
+                                prefix_event_set_active(ptr, EVENT_ACTIVETYPE_GENERIC);
                         }
                 }
 
@@ -149,7 +150,7 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                                 {
                                         if(signo == ptr->ev.sig.signo)
                                         {
-                                                prefix_event_set_active(ptr);
+                                                prefix_event_set_active(ptr, EVENT_ACTIVETYPE_GENERIC);
                                         }
                                 }
                         }

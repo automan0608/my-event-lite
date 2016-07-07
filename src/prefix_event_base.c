@@ -11,6 +11,7 @@
 #include "prefix_event_op.h"
 #include "prefix_log.h"
 #include "prefix_event.h"
+#include "prefix_bufferevent.h"
 #include "prefix_event_signal.h"
 #include "prefix_pipe.h"
 #include "prefix_min_heap.h"
@@ -58,17 +59,24 @@ prefix_event_base_t *prefix_event_base_new()
 	return base;
 }
 
-int prefix_event_base_add_event(int type, prefix_event_t *event)
+int prefix_event_base_add_event(prefix_event_t *event)
 {
 	prefix_log("debug", "in");
+
+	if (NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	int type = event->eventType;
+	prefix_event_t **ptr = NULL;
 
 	if (!(type & (EVENT_TYPE_IO | EVENT_TYPE_SIG | EVENT_TYPE_TIME)))
 	{
 		prefix_log("error", "parameter error");
 		return ERROR;
 	}
-
-	prefix_event_t **ptr = NULL;
 
 	switch (type)
 	{
@@ -97,7 +105,38 @@ int prefix_event_base_add_event(int type, prefix_event_t *event)
 			ptr = &(*ptr)->next;
 		}
 		(*ptr)->next = event;
-//		event->prev = (*ptr)->next;
+		event->prev = *ptr;
+		event->next = NULL;
+	}
+
+	prefix_log("debug", "out");
+	return SUCCESS;
+}
+
+int prefix_event_base_add_bufferevent(prefix_bufferevent_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	prefix_bufferevent_t **ptr = NULL;
+	ptr = &event->base->buffereventHead;
+
+	if (NULL == *ptr)
+	{
+		*ptr = event;
+	}
+	else
+	{
+		while (NULL != (*ptr)->next)
+		{
+			ptr = &(*ptr)->next;
+		}
+		(*ptr)->next = event;
 		event->prev = *ptr;
 		event->next = NULL;
 	}
@@ -304,7 +343,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 				}
 				if (0 > tvReactor.tv_sec)
 				{
-			        prefix_event_set_active(prefix_min_heap_pop(base->timeHeap));
+			        prefix_event_set_active(prefix_min_heap_pop(base->timeHeap), EVENT_ACTIVETYPE_TIMEOUT);
 				}
 			}
 		} while (0 > tvReactor.tv_sec);
@@ -328,7 +367,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 //		prefix_event_base_dump(base);
 
 		// invoke the callbacks
-		for(ptr=base->eventActive;ptr;ptr=ptr->activeNext)
+		for(ptr=base->eventActive; ptr; ptr=ptr->activeNext)
 		{
 			// eventStatus will be set in the function
 			prefix_event_invoke(ptr);
@@ -547,6 +586,7 @@ void prefix_event_base_dump(prefix_event_base_t *base)
 	}
 
 	prefix_event_t *ptr;
+	prefix_bufferevent_t *ptrbuf;
 
 	printf("********************************************\n");
 	printf("************* event base dump **************\n");
@@ -571,6 +611,12 @@ void prefix_event_base_dump(prefix_event_base_t *base)
 	{
 	printf("              event:          %p             \n", ptr);
 	prefix_event_dump(ptr);
+	}
+	printf("         buffereventHead: %p                 \n", base->buffereventHead);
+	for (ptrbuf = base->buffereventHead; ptrbuf != NULL; ptrbuf = ptrbuf->next)
+	{
+	printf("              bufferevent:    %p             \n", ptrbuf);
+	prefix_bufferevent_dump(ptrbuf);
 	}
 	printf("         timeHeap:        %p                 \n", base->timeHeap);
 	printf("         eventActive:     %p                 \n", base->eventActive);

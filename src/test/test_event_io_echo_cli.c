@@ -24,6 +24,15 @@ void cbcml(int fd, short events, void *arg)
 {
     printf("in cml callback, fd:%d, events:%d, arg:%p\n", fd, events, arg);
 
+#if 0
+// not support io event timeout at present
+    if (EVENT_ACTIVETYPE_TIMEOUT == events)
+    {
+        printf("active type is timeout\n");
+        return;
+    }
+#endif
+
     int fdio = ((struct test_arg_s *)arg)->fd;
     prefix_event_t **event_cml = ((struct test_arg_s *)arg)->event_cml;
     prefix_event_t **event_io = ((struct test_arg_s *)arg)->event_io;
@@ -152,6 +161,7 @@ int main(int argc, char const *argv[])
     event_cml = prefix_event_new(base, fileno(stdin), EV_READ, NULL, cbcml, (void *)&arg_cbcml);
     event_io = prefix_event_new(base, sockfd, EV_READ, NULL, cbio, (void *)&arg_cbio);
 #else
+    struct timeval tv = {3,0};
     event_cml = prefix_event_new(base, fileno(stdin), EV_READ|EV_PERSIST, NULL, cbcml, (void *)&arg_cbcml);
     event_io = prefix_event_new(base, sockfd, EV_READ|EV_PERSIST, NULL, cbio, (void *)&arg_cbio);
 #endif

@@ -87,7 +87,7 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 		return NULL;
 	}
 
-	result = prefix_event_base_add_event(event->eventType, event);
+	result = prefix_event_base_add_event(event);
 	if (SUCCESS != result)
 	{
 		prefix_log("error", "add event to eventbase error");
@@ -101,7 +101,7 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 	return event;
 }
 
-int prefix_event_set_active(prefix_event_t *event)
+int prefix_event_set_active(prefix_event_t *event, int activeType)
 {
 	prefix_log("debug", "in");
 
@@ -110,6 +110,8 @@ int prefix_event_set_active(prefix_event_t *event)
 		prefix_log("error", "parameter error");
 		return ERROR;
 	}
+
+	event->eventActiveType = activeType;
 
 	int result = prefix_event_base_set_event_active(event->base, event);
 	if (SUCCESS != result)
@@ -136,13 +138,13 @@ int prefix_event_invoke(prefix_event_t *event)
 	switch (event->eventType)
 	{
 	case EVENT_TYPE_IO:
-		event->callback(event->ev.io.fd, CALLBACK_EVENT_GENERIC, event->arg);
+		event->callback(event->ev.io.fd, event->eventActiveType, event->arg);
 		break;
 	case EVENT_TYPE_SIG:
-		event->callback(event->ev.sig.signo, CALLBACK_EVENT_GENERIC, event->arg);
+		event->callback(event->ev.sig.signo, event->eventActiveType, event->arg);
 		break;
 	case EVENT_TYPE_TIME:
-		event->callback(0, CALLBACK_EVENT_GENERIC, NULL);
+		event->callback(0, event->eventActiveType, NULL);
 		break;
 	default:
 		prefix_log("debug", "no such event type");

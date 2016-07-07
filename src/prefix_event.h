@@ -4,23 +4,16 @@
 
 #include "prefix_core.h"
 
-#if 0
-#define    PREFIX_EV_READ         0x01
-#define    PREFIX_EV_WRITE        0x02
-#define    PREFIX_EV_SIG          0x04
-#define    PREFIX_EV_TIME         0x08
-#define    PREFIX_EV_PERSIST      0x10
-#else
 #define    EV_READ         0x01
 #define    EV_WRITE        0x02
 #define    EV_SIG          0x04
 #define    EV_TIME         0x08
 #define    EV_PERSIST      0x10
-#endif
 
 #define    EVENT_TYPE_IO          0x01
 #define    EVENT_TYPE_SIG         0x02
 #define    EVENT_TYPE_TIME        0x04
+#define    EVENT_TYPE_BUFFER      0x08
 
 #define    EVENT_STATUS_AVAIL           0x01
 #define    EVENT_STATUS_IN_MIN_HEAP     0x02
@@ -28,6 +21,9 @@
 #define    EVENT_STATUS_ACTIVE          0x08
 #define    EVENT_STATUS_INVOKED         0x10
 #define    EVENT_STATUS_FREED           0x20
+
+#define    EVENT_ACTIVETYPE_GENERIC     0x00
+#define    EVENT_ACTIVETYPE_TIMEOUT     0x01
 
 struct prefix_event_s
 {
@@ -43,7 +39,8 @@ struct prefix_event_s
 
     int eventType;              // EVENT_TYPE_IO \   EVENT_TYPE_SIG   \   EVENT_TYPE_TIME
 
-    int eventStatus;            // EVENT_STATUS_AVAIL \ EVENT_STATUS_IN_MIN_HEAP
+    int eventStatus;
+    int eventActiveType;
 
     union {
         struct {
@@ -69,7 +66,7 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
                                         void (*cb)(prefix_socket_t, short, void *), void *arg);
 //                                        void (*cb)(void *), void *arg);
 
-int prefix_event_set_active(prefix_event_t *event);
+int prefix_event_set_active(prefix_event_t *event, int activeType);
 
 int prefix_event_invoke(prefix_event_t *event);
 
