@@ -22,8 +22,8 @@
 #define    EVENT_STATUS_INVOKED         0x10
 #define    EVENT_STATUS_FREED           0x20
 
-#define    EVENT_ACTIVETYPE_GENERIC     0x00
-#define    EVENT_ACTIVETYPE_TIMEOUT     0x01
+//#define    EVENT_ACTIVETYPE_GENERIC     0x00
+//#define    EVENT_ACTIVETYPE_TIMEOUT     0x01
 
 struct prefix_event_s
 {

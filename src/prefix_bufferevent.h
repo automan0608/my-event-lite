@@ -56,7 +56,7 @@ struct prefix_bufferevent_s
 
     int fd;
 
-    struct prefix_bufferevent_attr_s attr;
+    struct prefix_bufferevent_attr_s attr;      // blocksize & flushtype
 
     struct prefix_evbuffer_s *input;
     struct prefix_evbuffer_s *output;
@@ -73,6 +73,14 @@ prefix_bufferevent_t *prefix_bufferevent_new(prefix_event_base_t *base, prefix_s
 										short events, const struct timeval *tv,
 										void (*cb)(prefix_socket_t, short, void *),
 										void *arg, prefix_bufferevent_attr_t *attr);
+
+int prefix_bufferevent_write(prefix_bufferevent_t *event, const char *buf, size_t len);
+
+ssize_t prefix_bufferevent_read(prefix_bufferevent_t *event, void *buf, size_t len);
+
+int prefix_bufferevent_writev_inner(prefix_bufferevent_t *event, int fd, int rmflag);
+
+int prefix_bufferevent_readv_inner(prefix_bufferevent_t *event, int fd);
 
 int prefix_bufferevent_set_active(prefix_bufferevent_t *event, int activeType);
 

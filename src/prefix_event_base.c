@@ -44,7 +44,7 @@ prefix_event_base_t *prefix_event_base_new()
 		prefix_log("error", "create pipe error");
 		return NULL;
 	}
-	prefix_log("error", "create pipe success, [%d:%d]",
+	prefix_log("debug", "create pipe success, [%d:%d]",
 					base->notifyFd[0], base->notifyFd[1]);
 
 	base->timeHeap = prefix_min_heap_init();
@@ -178,6 +178,39 @@ int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t
 	return SUCCESS;
 }
 
+int prefix_event_base_set_bufferevent_active(prefix_event_base_t *base, prefix_bufferevent_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == base || NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	prefix_bufferevent_t **ptr = &base->buffereventActive;
+
+	if (NULL == *ptr)
+	{
+		*ptr = event;
+	}
+	else
+	{
+		while (NULL != (*ptr)->activeNext)
+		{
+			ptr = &(*ptr)->activeNext;
+		}
+		(*ptr)->activeNext = event;
+		event->activePrev = (*ptr);
+		event->activeNext = NULL;
+	}
+
+	event->eventStatus |= EVENT_STATUS_ACTIVE;
+
+	prefix_log("debug", "out");
+	return SUCCESS;
+}
+
 int prefix_event_base_dispatch(prefix_event_base_t *base)
 {
 	prefix_log("debug", "in");
@@ -199,6 +232,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 	}
 
 	prefix_event_t *ptr;
+	prefix_bufferevent_t *ptrbuf;
 	int flag = 0;
 	int result = 0;
 	struct timeval tvReactor = {0, 0};
@@ -244,44 +278,25 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 					// ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
 				}
 
-				flag = base->eventOps->add(base, ptr->ev.io.fd, 0, ptr->ev.io.events, NULL);
-				if (0 != flag)
+				result = base->eventOps->add(base, ptr->ev.io.fd, 0, ptr->ev.io.events, NULL);
+				if (0 != result)
 				{
 					//TODO
 				}
 			}
-    	}
-
-#if 1
-	/* at present, not support sig event */
+		}
 
 		// add sig events to reactor
 		if (NULL != base->eventSigHead)
 		{
 			prefix_log("debug", "base sig event chain not NULL");
 
-#if 0
-			for(ptr=base->eventSigHead; ptr; ptr=ptr->next)
-			{
-				prefix_log("debug", "ptr not NULL");
-
-				if (0 == (ptr->eventStatus & EVENT_STATUS_SIG_INSTALLED))
-				{
-					signal(ptr->ev.sig.signo, signal_handler);
-					ptr->eventStatus &= EVENT_STATUS_SIG_INSTALLED;
-				}
-
-				ptr = ptr->next;
-			}
-#endif
-
-			flag = base->eventOps->add(base, base->notifyFd[0], 0, EV_READ, NULL);
-			if (0 != flag)
+			result = base->eventOps->add(base, base->notifyFd[0], 0, EV_READ, NULL);
+			if (0 != result)
 			{
 				//TODO
 			}
 		}
-#endif
 
 		// add time events to reactor
 		if (NULL != base->eventTimeHead)
@@ -312,6 +327,40 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 					// ptr->eventStatus |= EVENT_STATUS_IN_MIN_HEAP;
 				}
+			}
+		}
+
+		// add bufferevent events to reactor
+		if (NULL != base->buffereventHead)
+		{
+			prefix_log("debug", "base time event chain not NULL");
+
+			for(ptrbuf=base->buffereventHead; ptrbuf; ptrbuf=ptrbuf->next)
+			{
+				prefix_log("debug", "ptr not NULL");
+
+				// always add read events
+				result = base->eventOps->add(base, ptrbuf->fd, 0, EV_READ, NULL);
+
+				// not always add write events
+				// flush type == CHAR
+				if (BUFFEREVENT_FLUSHTYPE_CHAR == ptrbuf->attr.flushType
+							&& 0 != ptrbuf->output->blockNum)
+				{
+					result = base->eventOps->add(base, ptrbuf->fd, 0, EV_WRITE, NULL);
+				}
+				// flush type == BLOCK
+				else if (BUFFEREVENT_FLUSHTYPE_BLOCK == ptrbuf->attr.flushType
+							&& ptrbuf->output->blockSize == ptrbuf->output->blockHead->ptrTail)
+				{
+					result = base->eventOps->add(base, ptrbuf->fd, 0, EV_WRITE, NULL);
+				}
+				// flush type == LINE
+				else
+				{
+					// TODO
+				}
+
 			}
 		}
 
@@ -371,6 +420,13 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		{
 			// eventStatus will be set in the function
 			prefix_event_invoke(ptr);
+		}
+
+		// invoke the callbacks
+		for(ptrbuf=base->eventActive; ptrbuf; ptrbuf=ptrbuf->activeNext)
+		{
+			// eventStatus will be set in the function
+			prefix_bufferevent_invoke(ptrbuf);
 		}
 
 		// for test

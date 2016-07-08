@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #include "event.h"
 
@@ -16,8 +17,8 @@ int main()
 	prefix_event_t *eventIO01 = prefix_event_new(base, 10, EV_READ, NULL, cb, NULL);
 	prefix_event_t *eventIO02 = prefix_event_new(base, 11, EV_WRITE, NULL, cb, NULL);
 
-	prefix_event_t *eventSig01 = prefix_event_new(base, -1, EV_SIG, NULL, cb, NULL);
-	prefix_event_t *eventSig02 = prefix_event_new(base, -1, EV_SIG, NULL, cb, NULL);
+	prefix_event_t *eventSig01 = prefix_event_new(base, SIGINT, EV_SIG, NULL, cb, NULL);
+	prefix_event_t *eventSig02 = prefix_event_new(base, SIGTERM, EV_SIG, NULL, cb, NULL);
 
 	struct timeval tv = {10, 10000};
 	prefix_event_t *eventTime01 = prefix_event_new(base, -1, EV_TIME, &tv, cb, NULL);

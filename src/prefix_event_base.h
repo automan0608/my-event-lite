@@ -27,6 +27,7 @@ int prefix_event_base_add_event(prefix_event_t *event);
 int prefix_event_base_add_bufferevent(prefix_bufferevent_t *event);
 
 int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t *event);
+int prefix_event_base_set_bufferevent_active(prefix_event_base_t *base, prefix_bufferevent_t *event);
 
 int prefix_event_base_dispatch(prefix_event_base_t *base);
 

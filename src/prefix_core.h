@@ -7,8 +7,11 @@ typedef 	int        prefix_signal_t;
 
 //#define CALLBACK_EVENT_GENERIC 		0x00
 //#define CALLBACK_EVENT_TIMEOUT 		0x01
-#define    EVENT_ACTIVETYPE_GENERIC     0x00
-#define    EVENT_ACTIVETYPE_TIMEOUT     0x01
+#define    EVENT_ACTIVETYPE_GENERIC        0x00
+#define    EVENT_ACTIVETYPE_TIMEOUT        0x01
+#define    EVENT_ACTIVETYPE_BUFFERREAD     0x02
+#define    EVENT_ACTIVETYPE_BUFFERWRITE    0x04
+
 typedef void (*prefix_event_callback_t)(prefix_socket_t fd, short event, void *arg);
 //typedef void (*prefix_event_callback_t)(void *arg);
 
@@ -35,7 +38,7 @@ typedef struct prefix_bufferevent_attr_s 	prefix_bufferevent_attr_t;
 #define		BUFFEREVENT_FLUSHTYPE_BLOCK 	0x04
 
 #define 	BUFFEREVENT_FLUSHTYPE_DEFAULT 	BUFFEREVENT_FLUSHTYPE_CHAR
-#define 	BUFFEREVENT_BLOCKSIZE_DEFAULT 	32
+#define 	BUFFEREVENT_BLOCKSIZE_DEFAULT 	256
 
 #if 0
 #define 	BUFFEREVENT_STATUS_AVAIL           0x01

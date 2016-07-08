@@ -24,14 +24,16 @@ int main()
 	prefix_bufferevent_t *bufferevent01 = prefix_bufferevent_new(base, 10, EV_READ, NULL, cb, NULL, &attr01);
 //	prefix_bufferevent_t *bufferevent02 = prefix_bufferevent_new(base, 11, EV_WRITE, NULL, cb, NULL, &attr02);
 
-	char *buf = "woshizhaoshengnishishui?";
+	char *buf01 = "how are you? ";
+	char *buf02 = "fine. thank you. and you? ";
+	char *buf03 = "i am fine too. ";
 
-	prefix_bufferevent_write(bufferevent01, buf, strlen(buf));
-	prefix_bufferevent_write(bufferevent01, buf, strlen(buf));
-	prefix_bufferevent_write(bufferevent01, buf, strlen(buf));
-	prefix_bufferevent_write(bufferevent01, buf, strlen(buf));
-	prefix_bufferevent_write(bufferevent01, buf, strlen(buf));
-	prefix_bufferevent_write(bufferevent01, buf, strlen(buf));
+	prefix_bufferevent_write(bufferevent01, buf01, strlen(buf01));
+	prefix_bufferevent_write(bufferevent01, buf02, strlen(buf02));
+	prefix_bufferevent_write(bufferevent01, buf03, strlen(buf03));
+	prefix_bufferevent_write(bufferevent01, buf01, strlen(buf01));
+	prefix_bufferevent_write(bufferevent01, buf02, strlen(buf02));
+	prefix_bufferevent_write(bufferevent01, buf03, strlen(buf03));
 
 	prefix_event_base_dump(base);
 

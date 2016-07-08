@@ -7,6 +7,7 @@
 #include "prefix_log.h"
 #include "prefix_base.h"
 #include "prefix_event.h"
+#include "prefix_bufferevent.h"
 #include "prefix_event_base.h"
 #include "prefix_event_signal.h"
 #include "prefix_min_heap.h"
@@ -125,6 +126,7 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                 prefix_log("debug", "select event happens");
                 // IO events
                 prefix_event_t *ptr;
+                prefix_bufferevent_t *ptrbuf;
 
                 for (ptr=base->eventIOHead;ptr;ptr=ptr->next)
                 {
@@ -153,6 +155,31 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                                                 prefix_event_set_active(ptr, EVENT_ACTIVETYPE_GENERIC);
                                         }
                                 }
+                        }
+                }
+
+                for (ptrbuf=base->buffereventHead; ptrbuf; ptrbuf=ptrbuf->next)
+                {
+                        if (FD_ISSET(ptrbuf->fd, &object.event_readset_in))
+                        {
+                                prefix_log("debug", "buffer event fd:%d readset ok", ptrbuf->fd);
+                                prefix_bufferevent_readv_inner(ptrbuf, ptrbuf->fd);
+
+                                // TODO need to handle the return value
+
+                                prefix_bufferevent_set_active(ptrbuf, EVENT_ACTIVETYPE_BUFFERREAD);
+                        }
+                        if (FD_ISSET(ptrbuf->fd, &object.event_writeset_in))
+                        {
+                                prefix_log("debug", "buffer event fd:%d writeset ok", ptrbuf->fd);
+
+                                // TODO set flag
+                                int rmflag = 1;
+                                prefix_bufferevent_writev_inner(ptrbuf, ptrbuf->fd, rmflag);
+
+                                // TODO need to handle the return value
+
+                                prefix_bufferevent_set_active(ptrbuf, EVENT_ACTIVETYPE_BUFFERWRITE);
                         }
                 }
         }
