@@ -55,6 +55,7 @@ struct prefix_bufferevent_s
     void *arg;
 
     int fd;
+    short events;
 
     struct prefix_bufferevent_attr_s attr;      // blocksize & flushtype
 

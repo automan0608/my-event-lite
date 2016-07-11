@@ -9,7 +9,7 @@
 
 #include "event.h"
 
-#define IP "192.168.0.11"
+#define IP "192.168.0.25"
 #define PORT 6000
 #define MAXLINE 1024
 
@@ -22,7 +22,7 @@ struct test_arg_s {
 
 void cbcml(int fd, short events, void *arg)
 {
-    printf("in cml callback, fd:%d, events:%d, arg:%p\n", fd, events, arg);
+//    printf("in cml callback, fd:%d, events:%d, arg:%p\n", fd, events, arg);
 
 #if 0
 // not support io event timeout at present
@@ -40,13 +40,12 @@ void cbcml(int fd, short events, void *arg)
     ssize_t n;
     char buf[MAXLINE];
 
-cbcml_again:
-    printf("before read\n");
+//    printf("before read\n");
     n = read(fd, buf, MAXLINE);
-    printf("read n:%d\n", (int)n);
+//    printf("read n:%d\n", (int)n);
     if (0 < n)
     {
-        prefix_bufferevent_write(fdio, buf, n);
+        prefix_bufferevent_write(*event_io, buf, n);
     }
     else if (0 == n)
     {
@@ -57,11 +56,6 @@ cbcml_again:
     }
     else
     {
-        if (errno == EINTR)
-        {
-            printf("error EINTR\n");
-            goto cbcml_again;
-        }
         printf("read cml error\n");
         prefix_event_free(*event_cml);
         prefix_bufferevent_free(*event_io);
@@ -72,7 +66,13 @@ cbcml_again:
 
 void cbio(int fd, short events, void *arg)
 {
-    printf("in io callback, fd:%d, events:%d, arg:%p\n", fd, events, arg);
+//    printf("in io callback, fd:%d, events:%d, arg:%p\n", fd, events, arg);
+
+    if (EVENT_ACTIVETYPE_BUFFERWRITE == events)
+    {
+        printf("bufferwrite got it\n");
+        return;
+    }
 
     int fdcml = ((struct test_arg_s *)arg)->fd;
     prefix_event_t **event_cml = ((struct test_arg_s *)arg)->event_cml;
@@ -81,10 +81,9 @@ void cbio(int fd, short events, void *arg)
     ssize_t n;
     char buf[MAXLINE];
 
-cbio_again:
-    printf("before read\n");
-    n = prefix_bufferevent_read(fd, buf, MAXLINE);
-    printf("read n:%d\n", (int)n);
+//    printf("before read\n");
+    n = prefix_bufferevent_read(*event_io, buf, MAXLINE);
+//    printf("read n:%d\n", (int)n);
     if (0 < n)
     {
         write(fdcml, buf, n);
@@ -98,11 +97,6 @@ cbio_again:
     }
     else
     {
-        if (errno == EINTR)
-        {
-            printf("error EINTR\n");
-            goto cbio_again;
-        }
         printf("read cml error\n");
         prefix_event_free(*event_cml);
         prefix_bufferevent_free(*event_io);
@@ -145,7 +139,7 @@ int main(int argc, char const *argv[])
     	printf("connect syscall error\n");
     	return -1;
     }
-    printf("connect %s:%d success\n", IP, PORT);
+    printf("connect %s:%d success, fd:%d\n", IP, PORT, sockfd);
 
     base = prefix_event_base_new();
 
@@ -159,10 +153,17 @@ int main(int argc, char const *argv[])
 
     event_cml = prefix_event_new(base, fileno(stdin), EV_READ|EV_PERSIST, NULL, cbcml, (void *)&arg_cbcml);
 
+#if 1
     prefix_bufferevent_attr_t attr;
     prefix_bufferevent_attr_set_blocksize(&attr, 200);
     prefix_bufferevent_attr_set_flushtype(&attr, BUFFEREVENT_FLUSHTYPE_CHAR);
-    event_io = prefix_bufferevent_new(base, 10, EV_READ|EV_WRITE|EV_PERSIST, NULL, cbio, (void *)&arg_cbio, &attr);
+    event_io = prefix_bufferevent_new(base, sockfd, EV_READ|EV_WRITE|EV_PERSIST, NULL, cbio, (void *)&arg_cbio, &attr);
+#else
+    prefix_bufferevent_attr_t attr;
+    prefix_bufferevent_attr_set_blocksize(&attr, 20);
+    prefix_bufferevent_attr_set_flushtype(&attr, BUFFEREVENT_FLUSHTYPE_BLOCK);
+    event_io = prefix_bufferevent_new(base, sockfd, EV_READ|EV_PERSIST, NULL, cbio, (void *)&arg_cbio, &attr);
+#endif
 
     prefix_event_base_dispatch(base);
 

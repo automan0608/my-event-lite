@@ -73,6 +73,7 @@ prefix_bufferevent_new(prefix_event_base_t *base, prefix_socket_t fd,
 	event->callback = cb;
 	event->arg = arg;
 	event->fd = fd;
+	event->events = events;
 
 	// if use not set, use default.
 	if (NULL == attr)
@@ -107,7 +108,7 @@ prefix_bufferevent_new(prefix_event_base_t *base, prefix_socket_t fd,
 		prefix_free(event);
 		return NULL;
 	}
-	memset(event->input, 0, sizeof(prefix_evbuffer_t));
+	memset(event->output, 0, sizeof(prefix_evbuffer_t));
 
 	// output blocksize set as use given or default
 	prefix_log("debug", "malloc evbuffer output success");
@@ -184,45 +185,53 @@ int prefix_bufferevent_write(prefix_bufferevent_t *event, const char *buf, size_
 	{
 		size_t nTailLeft = event->output->blockTail->length - event->output->blockTail->ptrTail;
 
-		nblock = (len -nTailLeft - 1)/event->output->blockSize + 1;
-		sizeSingle = sizeof(prefix_evbuffer_block_t) + event->output->blockSize;
-		sizeTotal = nblock * sizeSingle;
-
-		ptr = (char *)prefix_malloc(sizeTotal);
-		if (NULL == ptr)
+		if (len <= nTailLeft)
 		{
-			prefix_log("error", "malloc blocks error");
-			return ERROR;
+			memcpy(event->output->blockTail->buf + event->output->blockTail->ptrTail, buf, len);
+			event->output->blockTail->ptrTail += len;
 		}
-		memset(ptr, 0, sizeTotal);
-
-		// copy a bit fragment to the tail block which has some space left
-		memcpy(event->output->blockTail->buf + event->output->blockTail->ptrTail, buf, nTailLeft);
-		event->output->blockTail->ptrTail = event->output->blockTail->length;
-
-		event->output->blockNum += nblock;
-		for (i = 0; i < nblock; ++i)
+		else
 		{
-			((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->length = event->output->blockSize;
+			nblock = (len -nTailLeft - 1)/event->output->blockSize + 1;
+			sizeSingle = sizeof(prefix_evbuffer_block_t) + event->output->blockSize;
+			sizeTotal = nblock * sizeSingle;
 
-			((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->prev = (prefix_evbuffer_block_t *)(ptr + (i-1)*sizeSingle);
-			((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->next = (prefix_evbuffer_block_t *)(ptr + (i+1)*sizeSingle);
-			if (i != nblock - 1)
+			ptr = (char *)prefix_malloc(sizeTotal);
+			if (NULL == ptr)
 			{
-				memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + nTailLeft + i*event->output->blockSize, event->output->blockSize);
-				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->ptrTail = event->output->blockSize;
+				prefix_log("error", "malloc blocks error");
+				return ERROR;
 			}
-			else
+			memset(ptr, 0, sizeTotal);
+
+			// copy a bit fragment to the tail block which has some space left
+			memcpy(event->output->blockTail->buf + event->output->blockTail->ptrTail, buf, nTailLeft);
+			event->output->blockTail->ptrTail = event->output->blockTail->length;
+
+			event->output->blockNum += nblock;
+			for (i = 0; i < nblock; ++i)
 			{
-				memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + nTailLeft + i*event->output->blockSize, (len - nTailLeft - 1)%event->output->blockSize + 1);
-				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->ptrTail = (len - nTailLeft - 1)%event->output->blockSize + 1;
+				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->length = event->output->blockSize;
+
+				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->prev = (prefix_evbuffer_block_t *)(ptr + (i-1)*sizeSingle);
+				((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->next = (prefix_evbuffer_block_t *)(ptr + (i+1)*sizeSingle);
+				if (i != nblock - 1)
+				{
+					memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + nTailLeft + i*event->output->blockSize, event->output->blockSize);
+					((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->ptrTail = event->output->blockSize;
+				}
+				else
+				{
+					memcpy(((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->buf, buf + nTailLeft + i*event->output->blockSize, (len - nTailLeft - 1)%event->output->blockSize + 1);
+					((prefix_evbuffer_block_t *)(ptr + i*sizeSingle))->ptrTail = (len - nTailLeft - 1)%event->output->blockSize + 1;
+				}
 			}
+			((prefix_evbuffer_block_t *)(ptr))->prev = event->output->blockTail;
+			event->output->blockTail->next = (prefix_evbuffer_block_t *)ptr;
+			((prefix_evbuffer_block_t *)(ptr + (nblock-1)*sizeSingle))->next = NULL;
+
+			event->output->blockTail = (prefix_evbuffer_block_t *)(ptr + (i-1)*sizeSingle);
 		}
-		((prefix_evbuffer_block_t *)(ptr))->prev = event->output->blockTail;
-		event->output->blockTail->next = (prefix_evbuffer_block_t *)ptr;
-		((prefix_evbuffer_block_t *)(ptr + (nblock-1)*sizeSingle))->next = NULL;
-
-		event->output->blockTail = (prefix_evbuffer_block_t *)(ptr + (i-1)*sizeSingle);
 	}
 
 	return SUCCESS;
@@ -239,7 +248,7 @@ ssize_t prefix_bufferevent_read(prefix_bufferevent_t *event, void *buf, size_t l
 
 	// be careful, here return 0 but not -1
 	// cause !!!!
-	if (NULL == event->input->blockNum)
+	if (0 == event->input->blockNum)
 	{
 		prefix_log("error", "nothing in buffer");
 		return 0;
@@ -305,7 +314,7 @@ int prefix_bufferevent_writev_inner(prefix_bufferevent_t *event, int fd, int rmf
 	ptrblock = event->output->blockHead;
 	for (i = 0; i < iovcnt; ++i)
 	{
-		iov[i].iov_base = &ptrblock->buf[ptrblock->ptrTail - 1];
+		iov[i].iov_base = &ptrblock->buf[ptrblock->ptrHead];
 		iov[i].iov_len = ptrblock->ptrTail - ptrblock->ptrHead;
 
 		lenTotal += iov[i].iov_len;
@@ -492,10 +501,42 @@ int prefix_bufferevent_invoke(prefix_bufferevent_t *event)
 		return ERROR;
 	}
 
+	// only invoke the events which use care about
 	// void (*cb)(prefix_socket_t fd, short event, void *arg);
-	event->callback(event->fd, event->eventActiveType, event->arg);
+	if ((EV_WRITE & event->events) && (EVENT_ACTIVETYPE_BUFFERWRITE & event->eventActiveType))
+	{
+		event->callback(event->fd, event->eventActiveType & EVENT_ACTIVETYPE_BUFFERWRITE, event->arg);
+	}
+
+	if ((EV_READ & event->events) && (EVENT_ACTIVETYPE_BUFFERREAD & event->eventActiveType))
+	{
+		event->callback(event->fd, event->eventActiveType & EVENT_ACTIVETYPE_BUFFERREAD, event->arg);
+	}
 
 	event->eventStatus |= EVENT_STATUS_INVOKED;
+
+	prefix_log("debug", "out");
+	return SUCCESS;
+}
+
+int prefix_bufferevent_delete(prefix_bufferevent_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	int result = prefix_event_base_remove_bufferevent(event->base, event);
+	if (SUCCESS != result)
+	{
+		prefix_log("error", "remove bufferevent from base error");
+		return ERROR;
+	}
+
+	prefix_bufferevent_free_inner(event);
 
 	prefix_log("debug", "out");
 	return SUCCESS;
@@ -541,6 +582,20 @@ void prefix_bufferevent_free(prefix_bufferevent_t *event)
 	}
 
 	event->eventStatus |= BUFFEREVENT_STATUS_FREED;
+
+	prefix_log("debug", "out");
+}
+
+void prefix_bufferevent_free_inner(prefix_bufferevent_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == event)
+	{
+		prefix_log("debug", "already freed");
+	}
+
+	event->eventStatus |= EVENT_STATUS_FREED;
 
 	prefix_log("debug", "out");
 }

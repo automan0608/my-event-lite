@@ -97,6 +97,8 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
         prefix_log("debug", "maxfdp1:%d", object.maxfdp1);
         result = select(object.maxfdp1, &object.event_readset_in,
                                 &object.event_writeset_out, NULL, &tvSelect);
+
+        prefix_log("debug", "select result:%d", result);
         if (0 > result)
         {
                 prefix_log("error", "select error");
@@ -140,6 +142,8 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
 
                 if (FD_ISSET(base->notifyFd[0], &object.event_readset_in))
                 {
+                        prefix_log("debug", "base notifyFd:%d ok", base->notifyFd[0]);
+
                         int signo = 0;
 
                         if (0 >= (signo = prefix_event_signal_read(base)))
@@ -163,13 +167,14 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                         if (FD_ISSET(ptrbuf->fd, &object.event_readset_in))
                         {
                                 prefix_log("debug", "buffer event fd:%d readset ok", ptrbuf->fd);
+
                                 prefix_bufferevent_readv_inner(ptrbuf, ptrbuf->fd);
 
                                 // TODO need to handle the return value
 
                                 prefix_bufferevent_set_active(ptrbuf, EVENT_ACTIVETYPE_BUFFERREAD);
                         }
-                        if (FD_ISSET(ptrbuf->fd, &object.event_writeset_in))
+                        if (FD_ISSET(ptrbuf->fd, &object.event_writeset_out))
                         {
                                 prefix_log("debug", "buffer event fd:%d writeset ok", ptrbuf->fd);
 

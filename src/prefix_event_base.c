@@ -333,7 +333,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		// add bufferevent events to reactor
 		if (NULL != base->buffereventHead)
 		{
-			prefix_log("debug", "base time event chain not NULL");
+			prefix_log("debug", "base buffer event chain not NULL");
 
 			for(ptrbuf=base->buffereventHead; ptrbuf; ptrbuf=ptrbuf->next)
 			{
@@ -351,14 +351,17 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 				}
 				// flush type == BLOCK
 				else if (BUFFEREVENT_FLUSHTYPE_BLOCK == ptrbuf->attr.flushType
+							&& ptrbuf->output->blockHead
 							&& ptrbuf->output->blockSize == ptrbuf->output->blockHead->ptrTail)
 				{
 					result = base->eventOps->add(base, ptrbuf->fd, 0, EV_WRITE, NULL);
 				}
 				// flush type == LINE
-				else
+				// set as the same with flusy type == CHAR
+				else if (BUFFEREVENT_FLUSHTYPE_LINE == ptrbuf->attr.flushType
+							&& 0 != ptrbuf->output->blockNum)
 				{
-					// TODO
+					result = base->eventOps->add(base, ptrbuf->fd, 0, EV_WRITE, NULL);
 				}
 
 			}
@@ -436,6 +439,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		// only need to clean the head,
 		// since the chain nodes will be reset when add to the chain again.
 		base->eventActive = NULL;
+		base->buffereventActive = NULL;
 
 		// for test
 		// prefix_event_base_dump(base);
@@ -532,6 +536,38 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			// for test
 			// prefix_event_base_dump(base);
 		}
+
+		// clean the event chains (time)
+		// delete the useless events & reset all eventStatus
+		// CANNOT MODIFY to for-loop
+		ptrbuf = base->buffereventHead;
+		while (ptrbuf)
+		{
+			if ((!(ptrbuf->events & EV_PERSIST) && (ptrbuf->eventStatus & EVENT_STATUS_INVOKED))
+				|| (ptrbuf->eventStatus & EVENT_STATUS_FREED))
+			{
+				prefix_bufferevent_t *ptrtmp =ptrbuf;
+				ptrbuf = ptrbuf->next;
+				result = prefix_bufferevent_delete(ptrtmp);
+				if (SUCCESS != result)
+				{
+					//TODO
+				}
+
+				// for test
+				prefix_log("debug", "one buffer event removed");
+			}
+			else
+			{
+				ptrbuf->eventStatus &= ~EVENT_STATUS_ACTIVE;
+				ptrbuf->eventStatus &= ~EVENT_STATUS_INVOKED;
+				ptrbuf = ptrbuf->next;
+			}
+
+			// for test
+			// prefix_event_base_dump(base);
+		}
+
 		prefix_log("debug", "at the tail of base dispatch");
 //		prefix_event_base_dump(base);
     }
@@ -569,6 +605,40 @@ int prefix_event_base_remove_event(prefix_event_base_t *base, prefix_event_t *ev
 		prefix_log("debug", "no such event type");
 		return ERROR;
 	}
+
+	if (*ptr == event)
+	{
+		*ptr = event->next;
+	}
+	else
+	{
+		event->prev->next = event->next;
+		if (NULL != event->next)
+		{
+			event->next->prev = event->prev;
+		}
+	}
+
+	event->prev = NULL;
+	event->next = NULL;
+
+	prefix_log("debug", "out");
+	return SUCCESS;
+}
+
+// remove the bufferevent from the event_base event chain
+int prefix_event_base_remove_bufferevent(prefix_event_base_t *base, prefix_bufferevent_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == base || NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	prefix_bufferevent_t **ptr = NULL;
+	ptr = &base->buffereventHead;
 
 	if (*ptr == event)
 	{
