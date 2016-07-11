@@ -12,7 +12,8 @@ target = test_event_base.out 		\
 		 test_event_io_echo_serv_02.out 	\
 		 test_event_io_echo_cli.out 		\
 		 test_event_mixed_echo_cli.out 	\
-		 test_event_signal.out
+		 test_event_signal.out 	\
+		 test_bufferevent_echo_cli.out
 
 all:
 	cd ../ && make

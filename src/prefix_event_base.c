@@ -423,7 +423,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		}
 
 		// invoke the callbacks
-		for(ptrbuf=base->eventActive; ptrbuf; ptrbuf=ptrbuf->activeNext)
+		for(ptrbuf=base->buffereventActive; ptrbuf; ptrbuf=ptrbuf->activeNext)
 		{
 			// eventStatus will be set in the function
 			prefix_bufferevent_invoke(ptrbuf);
