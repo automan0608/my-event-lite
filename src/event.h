@@ -31,4 +31,6 @@ prefix_bufferevent_t *prefix_bufferevent_new(prefix_event_base_t *base, prefix_s
                                                 void (*cb)(prefix_socket_t, short, void *),
                                                 void *arg, prefix_bufferevent_attr_t *attr);
 
+void prefix_bufferevent_free(prefix_bufferevent_t *event);
+
 #endif
