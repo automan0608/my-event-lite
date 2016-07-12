@@ -147,7 +147,8 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
 
                         int signo = 0;
                         char buf[1] = {0};
-                        prefix_event_t *ptrread = NULL;
+                        prefix_event_t          *ptrread = NULL;
+                        prefix_bufferevent_t    *ptrbufread = NULL;
 
                         // read the type of the notify
                         result = prefix_pipe_read(base->notifyFd[0], buf, 1);
@@ -184,6 +185,22 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                                 }
 
                                 result = prefix_event_base_add_event(ptrread);
+                                if (SUCCESS != result)
+                                {
+                                        prefix_log("error", "base add event error");
+                                        return ERROR;
+                                }
+
+                                break;
+                        case NOTIFYTYPE_BUFFEREVENT_NEW:
+                                result = prefix_pipe_read(base->notifyFd[0], &ptrbufread, sizeof(prefix_bufferevent_t *));
+                                if (SUCCESS != result)
+                                {
+                                        prefix_log("error", "read notify type error");
+                                        return ERROR;
+                                }
+
+                                result = prefix_event_base_add_bufferevent(ptrbufread);
                                 if (SUCCESS != result)
                                 {
                                         prefix_log("error", "base add event error");

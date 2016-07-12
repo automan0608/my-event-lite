@@ -180,6 +180,41 @@ int prefix_event_base_add_bufferevent(prefix_bufferevent_t *event)
 	return SUCCESS;
 }
 
+int prefix_event_base_add_bufferevent_use_thread(prefix_bufferevent_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	int result = 0;
+	char buf[1] = {0};
+
+	buf[0] = NOTIFYTYPE_BUFFEREVENT_NEW;
+
+	// write the type of this notify
+	result = prefix_pipe_write(event->base->notifyFd[1], buf, 1);
+	if (SUCCESS != result)
+	{
+		prefix_log("error", "write notify bufferevent new error");
+		return ERROR;
+	}
+
+	result = prefix_pipe_write(event->base->notifyFd[1], (void *)&event, sizeof(prefix_bufferevent_t *));
+	if (SUCCESS != result)
+	{
+		prefix_log("error", "notifyfd write error");
+		return ERROR;
+	}
+
+	prefix_log("debug", "notifyfd write bufferevent new success");
+
+	return SUCCESS;
+}
+
 int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t *event)
 {
 	prefix_log("debug", "in");
@@ -271,7 +306,6 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 	prefix_event_t *ptr;
 	prefix_bufferevent_t *ptrbuf;
-	int flag = 0;
 	int result = 0;
 	struct timeval tvReactor = {0, 0};
 
