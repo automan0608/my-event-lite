@@ -87,15 +87,29 @@ prefix_event_t *prefix_event_new(prefix_event_base_t *base,
 		return NULL;
 	}
 
-	result = prefix_event_base_add_event(event);
-	if (SUCCESS != result)
-	{
-		prefix_log("error", "add event to eventbase error");
-		prefix_free(event);
-		return NULL;
-	}
+	event->eventStatus |= EVENT_STATUS_AVAIL;
 
-	event->eventStatus = EVENT_STATUS_AVAIL;
+	if (base->useThread)
+	{
+		result = prefix_event_base_add_event_use_thread(event);
+		if (SUCCESS != result)
+		{
+			prefix_log("error", "add event to eventbase error");
+			prefix_free(event);
+			return NULL;
+		}
+		prefix_log("debug", "add event to base use thread success");
+	}
+	else
+	{
+		result = prefix_event_base_add_event(event);
+		if (SUCCESS != result)
+		{
+			prefix_log("error", "add event to eventbase error");
+			prefix_free(event);
+			return NULL;
+		}
+	}
 
 	prefix_log("debug", "out");
 	return event;

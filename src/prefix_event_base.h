@@ -19,12 +19,17 @@ struct prefix_event_base_s
     prefix_bufferevent_t 	   	*buffereventActive;
 
     prefix_socket_t 			 notifyFd[2]; 	//
+
+    int                          useThread;
 };
 
 prefix_event_base_t *prefix_event_base_new();
 
 int prefix_event_base_add_event(prefix_event_t *event);
+int prefix_event_base_add_event_use_thread(prefix_event_t *event);
+
 int prefix_event_base_add_bufferevent(prefix_bufferevent_t *event);
+int prefix_event_base_add_bufferevent_use_thread(prefix_bufferevent_t *event);
 
 int prefix_event_base_set_event_active(prefix_event_base_t *base, prefix_event_t *event);
 int prefix_event_base_set_bufferevent_active(prefix_event_base_t *base, prefix_bufferevent_t *event);
@@ -35,6 +40,8 @@ int prefix_event_base_remove_event(prefix_event_base_t *base, prefix_event_t *ev
 int prefix_event_base_remove_bufferevent(prefix_event_base_t *base, prefix_bufferevent_t *event);
 
 void prefix_event_base_free(prefix_event_base_t *base);
+
+int prefix_event_base_use_thread(prefix_event_base_t *base);
 
 void prefix_event_base_dump(prefix_event_base_t *base);
 #endif

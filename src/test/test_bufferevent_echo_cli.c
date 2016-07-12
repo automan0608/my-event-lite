@@ -9,7 +9,7 @@
 
 #include "event.h"
 
-#define IP "192.168.0.25"
+#define IP "192.168.0.11"
 #define PORT 6000
 #define MAXLINE 1024
 
@@ -156,7 +156,7 @@ int main(int argc, char const *argv[])
 #if 1
     prefix_bufferevent_attr_t attr;
     prefix_bufferevent_attr_set_blocksize(&attr, 200);
-    prefix_bufferevent_attr_set_flushtype(&attr, BUFFEREVENT_FLUSHTYPE_CHAR);
+    prefix_bufferevent_attr_set_flushtype(&attr, BUFFEREVENT_FLUSHTYPE_BLOCK);
     event_io = prefix_bufferevent_new(base, sockfd, EV_READ|EV_WRITE|EV_PERSIST, NULL, cbio, (void *)&arg_cbio, &attr);
 #else
     prefix_bufferevent_attr_t attr;

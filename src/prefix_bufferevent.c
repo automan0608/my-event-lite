@@ -11,6 +11,7 @@
 #include "prefix_bufferevent.h"
 
 static int prefix_bufferevent_evbuffer_block_free_head(prefix_evbuffer_t *evbuffer);
+static int prefix_bufferevent_evbuffer_free(prefix_evbuffer_t *evbuffer);
 
 int prefix_bufferevent_attr_set_blocksize(prefix_bufferevent_attr_t *attr, int blockSize)
 {
@@ -115,12 +116,27 @@ prefix_bufferevent_new(prefix_event_base_t *base, prefix_socket_t fd,
 	event->output->blockNum = 0;
 	event->output->blockSize = event->attr.blockSize;
 
-	result = prefix_event_base_add_bufferevent(event);
-	if (SUCCESS != result)
+	if (base->useThread)
 	{
-		prefix_log("error", "add event to eventbase error");
-		prefix_free(event);
-		return NULL;
+		result = prefix_event_base_add_bufferevent_use_thread(event);
+		if (SUCCESS != result)
+		{
+			prefix_log("error", "add event to eventbase error");
+			prefix_free(event);
+			return NULL;
+		}
+		prefix_log("debug", "add event to base use thread success");
+	}
+	else
+	{
+		result = prefix_event_base_add_bufferevent(event);
+		if (SUCCESS != result)
+		{
+			prefix_log("error", "add event to eventbase error");
+			prefix_free(event);
+			return NULL;
+		}
+		prefix_log("debug", "add event to base success");
 	}
 
 	event->eventStatus = BUFFEREVENT_STATUS_AVAIL;
@@ -542,6 +558,31 @@ int prefix_bufferevent_delete(prefix_bufferevent_t *event)
 	return SUCCESS;
 }
 
+static int prefix_bufferevent_evbuffer_free(prefix_evbuffer_t *evbuffer)
+{
+	if (NULL == evbuffer)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	prefix_evbuffer_block_t *ptr;
+
+	ptr = evbuffer->blockHead;
+
+	while (ptr)
+	{
+		evbuffer->blockHead = ptr->next;
+
+		prefix_free(ptr);
+		ptr = evbuffer->blockHead;
+	}
+
+	prefix_free(evbuffer);
+
+	return SUCCESS;
+}
+
 static int prefix_bufferevent_evbuffer_block_free_head(prefix_evbuffer_t *evbuffer)
 {
 	if (NULL == evbuffer)
@@ -595,7 +636,10 @@ void prefix_bufferevent_free_inner(prefix_bufferevent_t *event)
 		prefix_log("debug", "already freed");
 	}
 
-	event->eventStatus |= EVENT_STATUS_FREED;
+	prefix_bufferevent_evbuffer_free(event->input);
+	prefix_bufferevent_evbuffer_free(event->output);
+
+	prefix_free(event);
 
 	prefix_log("debug", "out");
 }

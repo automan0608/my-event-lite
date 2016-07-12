@@ -40,6 +40,10 @@ typedef struct prefix_bufferevent_attr_s 	prefix_bufferevent_attr_t;
 #define 	BUFFEREVENT_FLUSHTYPE_DEFAULT 	BUFFEREVENT_FLUSHTYPE_CHAR
 #define 	BUFFEREVENT_BLOCKSIZE_DEFAULT 	256
 
+#define     NOTIFYTYPE_SIGNAL_COME          's'
+#define     NOTIFYTYPE_EVENT_NEW            'e'
+#define     NOTIFYTYPE_BUFFEREVENT_NEW      'b'
+
 #if 0
 #define 	BUFFEREVENT_STATUS_AVAIL           0x01
 #define 	BUFFEREVENT_STATUS_IN_MIN_HEAP     0x02
