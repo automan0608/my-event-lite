@@ -1,11 +1,13 @@
 /*
-* echo serv servs multiple clients
+* echo serv use thread
 *
 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
+#include <pthread.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -16,6 +18,7 @@
 #define PORT 6000
 #define MAXLINE 1024
 
+pthread_t tid;
 prefix_event_base_t *base;
 
 void cbconn(int fd, short events, void *arg)
@@ -56,48 +59,18 @@ cbconn_again:
     return;
 }
 
-void cblisten(int fd, short events, void *arg)
+void cbsig(int fd, short events, void *arg)
 {
-    printf("in listenfd callback, fd:%d, events:%d, arg:%p\n", fd, events, arg);
-    prefix_event_t **evlisten = (prefix_event_t **)arg;
+    printf("in signal callback, signo:%d\n", fd);
+}
 
-    struct sockaddr_in cliaddr;
-    socklen_t clilen;
-    prefix_event_t **evconn;
-    int connfd;
+void *thread_fn(void *arg)
+{
+    prefix_event_base_t *base = (prefix_event_base_t *)arg;
 
-    clilen = sizeof(struct sockaddr);
+    prefix_event_t *sig = prefix_event_new(base, SIGINT, EV_SIG|EV_PERSIST, NULL, cbsig, NULL);
 
-    // for test
-cblisten_again:
-    printf("before accept\n");
-    connfd = accept(fd, (struct sockaddr *)&cliaddr, &clilen);
-    printf("accept connfd:%d\n", connfd);
-    if (0 >= connfd)
-    {
-        if (EINTR == errno)
-        {
-            printf("errno EINTR\n");
-            goto cblisten_again;
-        }
-        printf("accept error\n");
-        // only here need to free the listen event
-        prefix_event_free(*evlisten);
-        return;
-    }
-
-    // malloc a ptr to ptr of event is necessary.
-    evconn = (prefix_event_t **)malloc(sizeof(prefix_event_t *));
-    if (NULL == evconn)
-    {
-        printf("malloc connect ev error\n");
-        return;
-    }
-    memset(evconn, 0, sizeof(prefix_event_t *));
-
-    // be carefull, here pass the ptr of event(event is a point)
-    *evconn = prefix_event_new(base, connfd, EV_READ|EV_PERSIST, NULL, cbconn, evconn);
-    printf("evconn new:%p\n", evconn);
+    prefix_event_base_dispatch(base);
 }
 
 int main(int argc, char const *argv[])
@@ -106,6 +79,9 @@ int main(int argc, char const *argv[])
 	int listenfd;
 	socklen_t clilen;
 	int result;
+    struct sockaddr_in cliaddr;
+    prefix_event_t **evconn;
+    int connfd;
 
 //    prefix_event_base_t *base;
     prefix_event_t *evlisten;
@@ -146,10 +122,48 @@ int main(int argc, char const *argv[])
     	return -1;
     }
    	printf("event base new success\n");
+    prefix_event_base_use_thread(base);
 
-    evlisten = prefix_event_new(base, listenfd, EV_READ|EV_PERSIST, NULL, cblisten, &evlisten);
+    result = pthread_create(&tid, NULL, thread_fn, (void *)base);
+    if (0 != result)
+    {
+        printf("thread create error\n");
+        return -1;
+    }
 
-    prefix_event_base_dispatch(base);
+    clilen = sizeof(struct sockaddr);
+
+    while (1)
+    {
+cblisten_again:
+        printf("before accept\n");
+        connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen);
+        printf("accept connfd:%d\n", connfd);
+        if (0 >= connfd)
+        {
+            if (EINTR == errno)
+            {
+                printf("errno EINTR\n");
+                goto cblisten_again;
+            }
+            printf("accept error\n");
+            // only here need to return
+            return;
+        }
+
+        // malloc a ptr to ptr of event is necessary.
+        evconn = (prefix_event_t **)malloc(sizeof(prefix_event_t *));
+        if (NULL == evconn)
+        {
+            printf("malloc connect ev error\n");
+            return;
+        }
+        memset(evconn, 0, sizeof(prefix_event_t *));
+
+        // be carefull, here pass the ptr of event(event is a point)
+        *evconn = prefix_event_new(base, connfd, EV_READ|EV_PERSIST, NULL, cbconn, (void *)evconn);
+        printf("evconn new:%p\n", evconn);
+    }
 
     return 0;
 }

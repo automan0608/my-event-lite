@@ -59,6 +59,41 @@ prefix_event_base_t *prefix_event_base_new()
 	return base;
 }
 
+int prefix_event_base_add_event_use_thread(prefix_event_t *event)
+{
+	prefix_log("debug", "in");
+
+	if (NULL == event)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	int result = 0;
+	char buf[1] = {0};
+
+	buf[0] = NOTIFYTYPE_EVENT_NEW;
+
+	// write the type of this notify
+	result = prefix_pipe_write(event->base->notifyFd[1], buf, 1);
+	if (SUCCESS != result)
+	{
+		prefix_log("error", "write notify event new error");
+		return ERROR;
+	}
+
+	result = prefix_pipe_write(event->base->notifyFd[1], (void *)&event, sizeof(prefix_event_t *));
+	if (SUCCESS != result)
+	{
+		prefix_log("error", "notifyfd write error");
+		return ERROR;
+	}
+
+	prefix_log("debug", "notifyfd write success");
+
+	return SUCCESS;
+}
+
 int prefix_event_base_add_event(prefix_event_t *event)
 {
 	prefix_log("debug", "in");
@@ -217,6 +252,8 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 //	prefix_event_base_dump(base);
 
+	int firstLoop = 1;
+
 	if (NULL == base)
 	{
 		prefix_log("error", "parameter error");
@@ -225,9 +262,10 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 
 	if (NULL == base->eventIOHead
 		&& NULL == base->eventSigHead
-		&& NULL == base->eventTimeHead)
+		&& NULL == base->eventTimeHead
+		&& 1 != firstLoop)
 	{
-		prefix_log("error", "no event registed");
+			prefix_log("error", "no event registed");
 		return ERROR;
 	}
 
@@ -242,10 +280,14 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 	struct timeval *tvMinHeapGet = NULL;
 
 	// not all events are consumered
-	while (base->eventIOHead || base->eventSigHead || base->eventTimeHead)
+	while (base->eventIOHead
+			|| base->eventSigHead
+			|| base->eventTimeHead
+			|| 1 == firstLoop)
 	{
 		prefix_log("debug", "in dispatch while loop");
 //		prefix_event_base_dump(base);
+		firstLoop = 0;
 
 		// init event base reactor
 		base->eventOps->init(base);
@@ -287,7 +329,7 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 		}
 
 		// add sig events to reactor
-		if (NULL != base->eventSigHead)
+		if (NULL != base->eventSigHead || 0 != base->useThread)
 		{
 			prefix_log("debug", "base sig event chain not NULL");
 
@@ -379,7 +421,9 @@ int prefix_event_base_dispatch(prefix_event_base_t *base)
 			if (NULL == tvMinHeapGet)
 			{
 				prefix_log("debug", "min heap empty");
-				tvReactor.tv_sec = 500;
+				// default reactor timeout,
+				// also as the firstloop timeout
+				tvReactor.tv_sec = 5;
 				tvReactor.tv_usec = 0;
 			}
 			else
@@ -701,6 +745,19 @@ void prefix_event_base_free(prefix_event_base_t *base)
 	prefix_free(base);
 
 	prefix_log("debug", "out");
+}
+
+int prefix_event_base_use_thread(prefix_event_base_t *base)
+{
+	if (NULL == base)
+	{
+		prefix_log("error", "parameter error");
+		return ERROR;
+	}
+
+	base->useThread = 1;
+
+	return SUCCESS;
 }
 
 void prefix_event_base_dump(prefix_event_base_t *base)

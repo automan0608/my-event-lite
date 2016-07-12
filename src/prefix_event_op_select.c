@@ -13,6 +13,7 @@
 #include "prefix_min_heap.h"
 #include "prefix_event_op.h"
 #include "prefix_event_op_select.h"
+#include "prefix_pipe.h"
 
 struct selectop {
         int maxfdp1;          /* Highest fd in fd set */
@@ -145,21 +146,56 @@ int select_dispatch(prefix_event_base_t *base, struct timeval *tv)
                         prefix_log("debug", "base notifyFd:%d ok", base->notifyFd[0]);
 
                         int signo = 0;
+                        char buf[1] = {0};
+                        prefix_event_t *ptrread = NULL;
 
-                        if (0 >= (signo = prefix_event_signal_read(base)))
+                        // read the type of the notify
+                        result = prefix_pipe_read(base->notifyFd[0], buf, 1);
+                        if (SUCCESS != result)
                         {
-                                prefix_log("error", "read signal error");
+                                prefix_log("error", "read notify type error");
+                                return ERROR;
                         }
-                        else
+
+                        switch(buf[0])
                         {
-                                for (ptr=base->eventSigHead;ptr;ptr=ptr->next)
+                        case NOTIFYTYPE_SIGNAL_COME:
+                                if (0 >= (signo = prefix_event_signal_read(base)))
                                 {
-                                        if(signo == ptr->ev.sig.signo)
+                                        prefix_log("error", "read signal error");
+                                }
+                                else
+                                {
+                                        for (ptr=base->eventSigHead;ptr;ptr=ptr->next)
                                         {
-                                                prefix_event_set_active(ptr, EVENT_ACTIVETYPE_GENERIC);
+                                                if(signo == ptr->ev.sig.signo)
+                                                {
+                                                        prefix_event_set_active(ptr, EVENT_ACTIVETYPE_GENERIC);
+                                                }
                                         }
                                 }
+                                break;
+                        case NOTIFYTYPE_EVENT_NEW:
+                                result = prefix_pipe_read(base->notifyFd[0], &ptrread, sizeof(prefix_event_t *));
+                                if (SUCCESS != result)
+                                {
+                                        prefix_log("error", "read notify type error");
+                                        return ERROR;
+                                }
+
+                                result = prefix_event_base_add_event(ptrread);
+                                if (SUCCESS != result)
+                                {
+                                        prefix_log("error", "base add event error");
+                                        return ERROR;
+                                }
+
+                                break;
+                        default:
+                                prefix_log("error", "no such type of notify");
+                                break;
                         }
+
                 }
 
                 for (ptrbuf=base->buffereventHead; ptrbuf; ptrbuf=ptrbuf->next)

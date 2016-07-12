@@ -4,8 +4,8 @@
 
 int prefix_pipe_init(int fd[2]);
 
-int prefix_pipe_write(int fd, char buf[], ssize_t n);
+int prefix_pipe_write(int fd, void *buf, size_t n);
 
-int prefix_pipe_read(int fd, char buf[], ssize_t n);
+int prefix_pipe_read(int fd, void *buf, size_t n);
 
 #endif

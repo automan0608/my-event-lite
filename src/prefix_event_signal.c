@@ -21,6 +21,17 @@ void prefix_event_signal_write(int signo)
 
 	int result = 0;
 	char buf[1] = {0};
+
+	buf[0] = NOTIFYTYPE_SIGNAL_COME;
+
+	// write the type of this notify
+	result = prefix_pipe_write(notifyFd[1], buf, 1);
+	if (SUCCESS != result)
+	{
+		prefix_log("error", "write notify type signal error");
+		return;
+	}
+
 	buf[0] = (char)signo;
 
 	result = prefix_pipe_write(notifyFd[1], buf, 1);
