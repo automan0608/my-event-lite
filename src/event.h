@@ -38,4 +38,8 @@ ssize_t prefix_bufferevent_read(prefix_bufferevent_t *event, void *buf, size_t l
 
 void prefix_bufferevent_free(prefix_bufferevent_t *event);
 
+int prefix_bufferevent_attr_set_blocksize(prefix_bufferevent_attr_t *attr, int blockSize);
+
+int prefix_bufferevent_attr_set_flushtype(prefix_bufferevent_attr_t *attr, int flushtype);
+
 #endif
