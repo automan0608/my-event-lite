@@ -9,7 +9,7 @@
 
 #include "event.h"
 
-#define IP "192.168.0.11"
+#define IP "192.168.0.22"
 #define PORT 6000
 #define MAXLINE 1024
 
